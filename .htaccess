@@ -1,4 +1,6 @@
-# Segurança básica
+# =========================
+# HostGator /emendas hardening
+# =========================
 Options -Indexes
 ServerSignature Off
 
@@ -6,9 +8,13 @@ ServerSignature Off
     RewriteEngine On
     RewriteBase /emendas/
 
-    # Bloqueia acesso direto a arquivos sensíveis
+    # Força HTTPS quando disponível
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Bloqueia acesso direto a arquivos/pastas sensíveis
     RewriteRule ^(app|config|database|storage|logs|routes|sql|includes|uploads)/ - [F,L,NC]
-    RewriteRule ^(README\.md|composer\.(json|lock)|\.env)$ - [F,L,NC]
+    RewriteRule ^(README\.md|DEPLOY_HOSTGATOR\.md|ESTRUTURA_MVC_HOSTGATOR\.md|composer\.(json|lock)|\.env|\.git) - [F,L,NC]
 
     # Front controller
     RewriteCond %{REQUEST_FILENAME} !-f
