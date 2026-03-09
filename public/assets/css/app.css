@@ -1,0 +1,8 @@
+:root {
+    --primary: #0d6efd;
+    --success: #198754;
+    --dark: #111827;
+}
+body { background: #f7fafc; color: var(--dark); }
+.card { border: 0; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+#calendar { min-height: 400px; }
