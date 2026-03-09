@@ -39,6 +39,15 @@ Sistema web completo em **PHP 8+ / MySQL** para gestão de emendas governamentai
   /.htaccess
 ```
 
+
+## Arquitetura recomendada (versão profissional e escalável)
+- Consulte `ESTRUTURA_MVC_HOSTGATOR.md` para a proposta completa com:
+  - árvore de diretórios ideal para `/emendas`;
+  - finalidade de cada pasta;
+  - arquivos principais sugeridos;
+  - sequência ideal de implementação;
+  - orientação específica para hospedagem compartilhada HostGator.
+
 ## Perfis e regras de acesso
 ### Master
 - Acesso total ao painel administrativo.
