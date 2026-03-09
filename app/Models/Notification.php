@@ -47,15 +47,17 @@ class Notification
      */
     public function existsRecent(int $usuarioId, string $type, int $referenciaId, int $hoursWindow = 24): bool
     {
+        $cutoff = date('Y-m-d H:i:s', time() - max(1, $hoursWindow) * 3600);
+
         $sql = 'SELECT id FROM notificacoes
                 WHERE usuario_id = :usuario_id AND tipo = :tipo AND referencia_id = :referencia_id
-                AND created_at >= DATE_SUB(NOW(), INTERVAL :hours_window HOUR)
+                AND created_at >= :cutoff
                 LIMIT 1';
         $stmt = Database::connection()->prepare($sql);
         $stmt->bindValue(':usuario_id', $usuarioId, \PDO::PARAM_INT);
         $stmt->bindValue(':tipo', $type);
         $stmt->bindValue(':referencia_id', $referenciaId, \PDO::PARAM_INT);
-        $stmt->bindValue(':hours_window', $hoursWindow, \PDO::PARAM_INT);
+        $stmt->bindValue(':cutoff', $cutoff);
         $stmt->execute();
         return (bool)$stmt->fetch();
     }

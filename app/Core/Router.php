@@ -25,10 +25,18 @@ class Router
     public function dispatch(string $uri, string $method): void
     {
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+
+        // Remove APP_BASE_PATH do início da rota para compatibilidade com /emendas.
+        $basePath = rtrim(APP_BASE_PATH, '/');
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath));
+        }
+
         $path = '/' . trim($path, '/');
         $path = $path === '/' ? '/' : $path;
 
-        $handler = $this->routes[$method][$path] ?? null;
+        $httpMethod = strtoupper($method);
+        $handler = $this->routes[$httpMethod][$path] ?? null;
 
         if (!$handler) {
             http_response_code(404);

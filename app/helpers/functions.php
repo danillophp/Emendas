@@ -2,15 +2,29 @@
 
 declare(strict_types=1);
 
-function e(string $value): string
+/**
+ * Escape de saída para prevenir XSS em templates.
+ */
+function e(mixed $value): string
 {
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * Gera URL baseada no APP_BASE_PATH (ex.: /emendas).
+ * Evita acoplamento em domínio fixo e funciona em diferentes ambientes.
+ */
 function url(string $path = ''): string
 {
-    $path = ltrim($path, '/');
-    return APP_URL . ($path ? '/' . $path : '');
+    $normalizedPath = trim($path);
+    $normalizedPath = ltrim($normalizedPath, '/');
+
+    $basePath = rtrim(APP_BASE_PATH, '/');
+    if ($basePath === '') {
+        return '/' . $normalizedPath;
+    }
+
+    return $basePath . ($normalizedPath !== '' ? '/' . $normalizedPath : '');
 }
 
 function redirect(string $path): void

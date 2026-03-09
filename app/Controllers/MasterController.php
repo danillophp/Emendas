@@ -254,13 +254,19 @@ class MasterController extends Controller
             redirect('master/demands');
         }
 
+        $prazoEntrega = trim((string)($_POST['prazo_entrega'] ?? ''));
+        if ($prazoEntrega === '') {
+            flash('error', 'Prazo de entrega inválido.');
+            redirect('master/demands');
+        }
+
         $this->demands->update((int)$_POST['id'], [
             'emenda' => trim($_POST['emenda'] ?? ''),
             'nome_politico' => trim($_POST['nome_politico'] ?? ''),
             'data_emenda' => $_POST['data_emenda'] ?? date('Y-m-d'),
             'tipo_emenda' => trim($_POST['tipo_emenda'] ?? ''),
             'observacao' => trim($_POST['observacao'] ?? ''),
-            'prazo_entrega' => date('Y-m-d H:i:s', strtotime((string)($_POST['prazo_entrega'] ?? date('Y-m-d H:i:s')))),
+            'prazo_entrega' => date('Y-m-d H:i:s', strtotime($prazoEntrega)),
             'funcionario_id' => (int)($_POST['funcionario_id'] ?? 0),
             'status' => $_POST['status'] ?? 'pendente',
         ]);
