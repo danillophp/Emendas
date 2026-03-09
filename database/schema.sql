@@ -1,13 +1,17 @@
 -- =========================================================
 -- Sistema de Gestão de Emendas Governamentais
 -- Banco: santo821_emenda
--- Compatível com MySQL / phpMyAdmin (HostGator)
+-- Compatível com MySQL 5.7+/8.0 e phpMyAdmin (HostGator)
 -- =========================================================
 
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
+SET SQL_MODE = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- ---------------------------------------------------------
+-- Criação do banco
+-- ---------------------------------------------------------
 CREATE DATABASE IF NOT EXISTS `santo821_emenda`
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
@@ -15,8 +19,20 @@ CREATE DATABASE IF NOT EXISTS `santo821_emenda`
 USE `santo821_emenda`;
 
 -- ---------------------------------------------------------
+-- Criação do usuário de banco (quando permitido pelo host)
+-- Em hospedagem compartilhada pode já existir via painel.
+-- ---------------------------------------------------------
+CREATE USER IF NOT EXISTS 'santo821_emenda'@'localhost' IDENTIFIED BY 'php@3903.';
+GRANT ALL PRIVILEGES ON `santo821_emenda`.* TO 'santo821_emenda'@'localhost';
+FLUSH PRIVILEGES;
+
+-- ---------------------------------------------------------
 -- Reimportação segura (ordem por dependência)
 -- ---------------------------------------------------------
+DROP TRIGGER IF EXISTS `trg_demandas_ai_log`;
+DROP TRIGGER IF EXISTS `trg_demandas_au_log`;
+DROP TRIGGER IF EXISTS `trg_demandas_ad_log`;
+
 DROP TABLE IF EXISTS `redefinicao_senha`;
 DROP TABLE IF EXISTS `logs_sistema`;
 DROP TABLE IF EXISTS `notificacoes`;
@@ -149,8 +165,59 @@ CREATE TABLE `redefinicao_senha` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
+-- Auditoria por trigger (demanda)
+-- Uso opcional na aplicação: SET @app_user_id = <id_usuario_logado>;
+-- ---------------------------------------------------------
+DELIMITER $$
+
+CREATE TRIGGER `trg_demandas_ai_log`
+AFTER INSERT ON `demandas`
+FOR EACH ROW
+BEGIN
+  INSERT INTO `logs_sistema` (`usuario_id`, `acao`, `entidade`, `entidade_id`, `descricao`)
+  VALUES (
+    COALESCE(@app_user_id, NEW.criado_por),
+    'INSERT',
+    'demandas',
+    NEW.id,
+    CONCAT('Demanda criada com status ', NEW.status)
+  );
+END$$
+
+CREATE TRIGGER `trg_demandas_au_log`
+AFTER UPDATE ON `demandas`
+FOR EACH ROW
+BEGIN
+  INSERT INTO `logs_sistema` (`usuario_id`, `acao`, `entidade`, `entidade_id`, `descricao`)
+  VALUES (
+    COALESCE(@app_user_id, NEW.criado_por),
+    'UPDATE',
+    'demandas',
+    NEW.id,
+    CONCAT('Demanda atualizada. Status de ', OLD.status, ' para ', NEW.status)
+  );
+END$$
+
+CREATE TRIGGER `trg_demandas_ad_log`
+AFTER DELETE ON `demandas`
+FOR EACH ROW
+BEGIN
+  INSERT INTO `logs_sistema` (`usuario_id`, `acao`, `entidade`, `entidade_id`, `descricao`)
+  VALUES (
+    COALESCE(@app_user_id, OLD.criado_por),
+    'DELETE',
+    'demandas',
+    OLD.id,
+    'Demanda removida'
+  );
+END$$
+
+DELIMITER ;
+
+-- ---------------------------------------------------------
 -- Usuário MASTER inicial
--- senha (hash bcrypt de exemplo): Master@123
+-- senha em texto para cadastro inicial: Master@123
+-- hash bcrypt correspondente abaixo
 -- ---------------------------------------------------------
 INSERT INTO `usuarios` (
   `nome_completo`,
