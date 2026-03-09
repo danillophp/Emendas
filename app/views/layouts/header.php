@@ -11,41 +11,94 @@
 </head>
 <body>
 <?php if (!empty($_SESSION['user'])): ?>
-<div class="app-shell">
-  <aside class="sidebar">
-    <a class="brand" href="#"><i class="bi bi-building"></i> Emendas Gov</a>
-    <?php $role = $_SESSION['user']['role'] ?? ''; ?>
+<?php
+  $role = $_SESSION['user']['role'] ?? '';
+  $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '/';
+  $basePath = rtrim(APP_BASE_PATH, '/');
+  if ($basePath !== '' && str_starts_with($requestPath, $basePath)) {
+      $requestPath = substr($requestPath, strlen($basePath));
+  }
+  $requestPath = '/' . ltrim($requestPath, '/');
+
+  $navItems = $role === 'master'
+    ? [
+        ['label' => 'Dashboard', 'icon' => 'bi-speedometer2', 'path' => '/master/dashboard'],
+        ['label' => 'Funcionários', 'icon' => 'bi-people', 'path' => '/master/employees'],
+        ['label' => 'Demandas', 'icon' => 'bi-list-task', 'path' => '/master/demands'],
+        ['label' => 'Notificações', 'icon' => 'bi-bell', 'path' => '/master/notifications'],
+      ]
+    : [
+        ['label' => 'Dashboard', 'icon' => 'bi-speedometer2', 'path' => '/funcionario/dashboard'],
+        ['label' => 'Minhas Demandas', 'icon' => 'bi-list-check', 'path' => '/funcionario/demandas'],
+        ['label' => 'Notificações', 'icon' => 'bi-bell', 'path' => '/funcionario/notificacoes'],
+      ];
+?>
+<div class="app-shell" id="appShell">
+  <aside class="sidebar" id="sidebarNav">
+    <a class="brand" href="<?= url($role === 'master' ? 'master/dashboard' : 'funcionario/dashboard') ?>">
+      <i class="bi bi-building"></i> Emendas Gov
+    </a>
+
     <nav class="nav flex-column gap-1">
-      <?php if ($role === 'master'): ?>
-        <a class="nav-link" href="<?= url('master/dashboard') ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        <a class="nav-link" href="<?= url('master/employees') ?>"><i class="bi bi-people"></i> Funcionários</a>
-        <a class="nav-link" href="<?= url('master/demands') ?>"><i class="bi bi-list-task"></i> Demandas</a>
-        <a class="nav-link" href="<?= url('master/notifications') ?>"><i class="bi bi-bell"></i> Notificações</a>
-      <?php else: ?>
-        <a class="nav-link" href="<?= url('funcionario/dashboard') ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        <a class="nav-link" href="<?= url('funcionario/demandas') ?>"><i class="bi bi-list-check"></i> Minhas Demandas</a>
-        <a class="nav-link" href="<?= url('funcionario/notificacoes') ?>"><i class="bi bi-bell"></i> Notificações</a>
-      <?php endif; ?>
+      <?php foreach ($navItems as $item): ?>
+        <?php $active = str_starts_with($requestPath, $item['path']); ?>
+        <a class="nav-link <?= $active ? 'active' : '' ?>" href="<?= url(ltrim($item['path'], '/')) ?>">
+          <i class="bi <?= e($item['icon']) ?>"></i> <?= e($item['label']) ?>
+        </a>
+      <?php endforeach; ?>
     </nav>
   </aside>
+
   <div class="main-wrap">
     <header class="topbar d-flex justify-content-between align-items-center">
-      <div>
-        <strong><?= e($_SESSION['user']['name']) ?></strong>
-      </div>
       <div class="d-flex align-items-center gap-2">
-        <a class="btn btn-outline-primary btn-sm" href="<?= url(($role === 'master') ? 'master/notifications' : 'funcionario/notificacoes') ?>">
-          <i class="bi bi-bell"></i> <span class="badge bg-warning text-dark"><?= (int)$headerUnreadCount ?></span>
-        </a>
+        <button class="btn btn-outline-secondary btn-sm d-lg-none" id="sidebarToggle" type="button" aria-label="Abrir menu">
+          <i class="bi bi-list"></i>
+        </button>
+        <div>
+          <small class="text-muted d-block text-uppercase fw-semibold">Painel institucional</small>
+          <strong><?= e($_SESSION['user']['name']) ?></strong>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="dropdown">
+          <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <?php if ((int)$headerUnreadCount > 0): ?>
+              <span class="badge rounded-pill bg-warning text-dark position-absolute top-0 start-100 translate-middle"><?= (int)$headerUnreadCount ?></span>
+            <?php endif; ?>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end p-0 shadow notification-menu">
+            <div class="p-3 border-bottom">
+              <strong>Notificações</strong>
+            </div>
+            <div class="notification-list">
+              <?php if (!empty($headerNotifications)): ?>
+                <?php foreach ($headerNotifications as $headerNotification): ?>
+                  <a class="dropdown-item py-2" href="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>">
+                    <div class="small fw-semibold"><?= e($headerNotification['titulo']) ?></div>
+                    <div class="small text-muted"><?= e($headerNotification['mensagem']) ?></div>
+                  </a>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <div class="px-3 py-3 text-muted small">Sem notificações recentes.</div>
+              <?php endif; ?>
+            </div>
+            <a class="dropdown-item text-center py-2 border-top" href="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>">Ver todas</a>
+          </div>
+        </div>
+
         <form method="post" action="<?= url('logout') ?>" class="mb-0">
           <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
           <button class="btn btn-dark btn-sm"><i class="bi bi-box-arrow-right"></i> Sair</button>
         </form>
       </div>
     </header>
+
     <main class="container-fluid p-3 p-lg-4">
 <?php else: ?>
 <main class="container py-4">
 <?php endif; ?>
-<?php if ($error = flash('error')): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?>
-<?php if ($success = flash('success')): ?><div class="alert alert-success"><?= e($success) ?></div><?php endif; ?>
+<?php if ($error = flash('error')): ?><div class="alert alert-danger shadow-sm border-0"><?= e($error) ?></div><?php endif; ?>
+<?php if ($success = flash('success')): ?><div class="alert alert-success shadow-sm border-0"><?= e($success) ?></div><?php endif; ?>
