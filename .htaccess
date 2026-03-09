@@ -7,7 +7,7 @@ ServerSignature Off
     RewriteBase /emendas/
 
     # Bloqueia acesso direto a arquivos sensíveis
-    RewriteRule ^(app|database|storage|routes|sql|includes|uploads)/ - [F,L,NC]
+    RewriteRule ^(app|config|database|storage|logs|routes|sql|includes|uploads)/ - [F,L,NC]
     RewriteRule ^(README\.md|composer\.(json|lock)|\.env)$ - [F,L,NC]
 
     # Front controller

@@ -1,56 +1,134 @@
 # Sistema de Gestão de Emendas Governamentais
 
-Aplicação PHP 8+ / MySQL pronta para produção em HostGator, com arquitetura MVC simples, segurança básica e rotas amigáveis.
+Sistema web completo em **PHP 8+ / MySQL** para gestão de emendas governamentais, com arquitetura MVC organizada por camadas, dois perfis de acesso (Master e Funcionário), segurança básica de produção e compatibilidade com hospedagem compartilhada **HostGator**.
 
-## Estrutura de pastas recomendada
-- `app/`
-  - `config/` (configuração central)
-  - `Core/` (Router, Controller, Database)
-  - `Middleware/`
-  - `Controllers/`
-  - `Models/`
-  - `views/`
-  - `helpers/`
-- `assets/` (CSS/JS)
-- `database/` (script SQL principal)
-- `sql/` (script SQL espelho)
-- `routes/`
-- `storage/logs/`
-- `index.php`
-- `.htaccess`
+## Stack
+- PHP 8+
+- MySQL
+- PDO (prepared statements)
+- Bootstrap 5
+- Bootstrap Icons
+- FullCalendar
+- DataTables
+- HTML5 / CSS3 / JavaScript
 
-## Configuração central (produção)
-Arquivo: `app/config/config.php`
+## Estrutura de pastas (produção)
+```text
+/emendas
+  /app
+    /Controllers
+    /Models
+    /views
+    /helpers
+    /Middleware
+    /Core
+    /config
+  /config                # ponte para configuração central
+  /database
+  /public
+    /assets
+      /css
+      /js
+      /img
+  /routes
+  /storage
+  /logs
+  /assets
+  /sql
+  /index.php
+  /.htaccess
+```
 
-Já configurado para o contexto solicitado:
-- URL base: `https://www.prefsade.com.br/emendas`
-- base path: `/emendas`
-- banco: `santo821_emenda`
-- usuário: `santo821_emenda`
-- senha: `php@3903.`
+## Perfis e regras de acesso
+### Master
+- Acesso total ao painel administrativo.
+- CRUD de funcionários.
+- Alteração de senha de funcionário.
+- Ativação/desativação de funcionário.
+- CRUD de demandas e atribuição.
+- Dashboard geral com calendário e indicadores.
+- Notificações de conclusão e alertas de prazo.
+
+### Funcionário
+- Acesso apenas ao próprio painel.
+- Visualiza apenas demandas atribuídas.
+- Acompanha prazo e tempo restante.
+- Conclui demanda com observação de conclusão.
+
+## Regras de funcionário
+Campos obrigatórios:
+- nome completo
+- email
+- endereço
+- WhatsApp
+- número de decreto
+- data de nascimento
+
+Regras de credencial inicial:
+- usuário padrão = número do decreto
+- senha padrão = data de nascimento sem separadores
+- senha em hash (`password_hash`)
+- validação com `password_verify`
+- troca obrigatória no primeiro login
+- unicidade de e-mail, decreto e usuário
+
+## Regras de demanda
+Status suportados:
+- `pendente`
+- `em_andamento`
+- `concluida`
+- `atrasada`
+
+Fluxo:
+1. Master cria e atribui a demanda.
+2. Funcionário visualiza no painel.
+3. Funcionário conclui com observação.
+4. Sistema grava data/hora de conclusão.
+5. Sistema notifica o Master.
+6. Sistema alerta Master quando faltar <=24h.
+7. Sistema marca automaticamente `atrasada` quando expirar prazo sem conclusão.
 
 ## Segurança implementada
-- PDO com prepared statements (proteção contra SQL Injection)
-- Escape de saída com `e()` (proteção contra XSS)
-- CSRF token em formulários críticos
-- Sessão endurecida (`httponly`, `samesite`, strict mode)
-- Senhas com `password_hash` / `password_verify`
-- Logs básicos em `storage/logs/app.log`
-- `.htaccess` com bloqueio de diretórios sensíveis e security headers
+- Sessão segura (strict mode, httponly, samesite, secure em HTTPS).
+- CSRF token em formulários críticos.
+- Prepared statements com PDO.
+- Escape de saída com `e()` (XSS).
+- Middleware de autenticação e autorização por perfil.
+- Tokens de sessão por usuário para invalidar sessão concorrente.
+- Logs básicos de autenticação e ações de negócio.
+- Tratamento amigável de erros em produção.
 
-## Arquivos-chave de produção
+## Configuração central
+Arquivo principal:
 - `app/config/config.php`
-- `app/Core/Database.php`
-- `database/schema.sql`
-- `sql/schema.sql`
-- `.htaccess`
-- `DEPLOY_HOSTGATOR.md`
+
+Ponte externa de compatibilidade:
+- `config/config.php`
+
+Parâmetros de produção já definidos:
+- URL base: `https://www.prefsade.com.br/emendas`
+- Base path: `/emendas`
+- Banco: `santo821_emenda`
+- Usuário: `santo821_emenda`
+- Senha: `php@3903.`
+
+## Banco de dados
+Scripts de importação:
+- `database/schema.sql` (principal)
+- `sql/schema.sql` (espelho)
+
+Tabelas:
+- `usuarios`
+- `demandas`
+- `notificacoes`
+- `logs_sistema`
 
 ## Instalação rápida (HostGator)
-1. Subir projeto para `public_html/emendas`.
-2. Importar `database/schema.sql` no phpMyAdmin.
-3. Garantir permissão de escrita em `storage/logs/`.
-4. Acessar `https://www.prefsade.com.br/emendas`.
+1. Suba o projeto para `public_html/emendas`.
+2. Importe `database/schema.sql` no phpMyAdmin.
+3. Garanta permissão de escrita em `storage/logs/`.
+4. Verifique `.htaccess` com `RewriteBase /emendas/`.
+5. Acesse `https://www.prefsade.com.br/emendas`.
 
 ## Checklist de deploy
-Consulte: `DEPLOY_HOSTGATOR.md`.
+Consulte `DEPLOY_HOSTGATOR.md`.
