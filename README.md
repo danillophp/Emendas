@@ -97,6 +97,16 @@ Fluxo:
 6. Sistema alerta Master quando faltar <=24h.
 7. Sistema marca automaticamente `atrasada` quando expirar prazo sem conclusão.
 
+
+## Módulo de notificações e controle de prazo
+- Conclusão de demanda pelo funcionário grava `data_conclusao` e `observacao_conclusao` e envia notificação para o Master com referência da demanda.
+- Automação de prazo roda em pontos estratégicos dos painéis (Master e Funcionário):
+  - marca demandas vencidas como `atrasada`;
+  - gera alerta de 24h para o Master em demandas não concluídas;
+  - evita duplicação excessiva com janela de verificação por tipo/referência.
+- Área de notificações lista itens mais recentes, exibe contador de não lidas e permite marcar como lida.
+- Implementação centralizada em serviço reutilizável: `app/Services/NotificationDeadlineService.php`.
+
 ## Segurança implementada
 - Sessão segura (strict mode, httponly, samesite, secure em HTTPS).
 - CSRF token em formulários críticos.

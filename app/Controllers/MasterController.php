@@ -7,6 +7,7 @@ use App\Models\Demand;
 use App\Models\Notification;
 use App\Models\SystemLog;
 use App\Models\User;
+use App\Services\NotificationDeadlineService;
 
 class MasterController extends Controller
 {
@@ -14,7 +15,8 @@ class MasterController extends Controller
         private readonly User $users = new User(),
         private readonly Demand $demands = new Demand(),
         private readonly Notification $notifications = new Notification(),
-        private readonly SystemLog $logs = new SystemLog()
+        private readonly SystemLog $logs = new SystemLog(),
+        private readonly NotificationDeadlineService $deadlineService = new NotificationDeadlineService()
     ) {
     }
 
@@ -22,7 +24,7 @@ class MasterController extends Controller
     {
         $this->requireAuth('master');
         $masterId = (int)$_SESSION['user']['id'];
-        $this->runDeadlineAutomation($masterId);
+        $this->deadlineService->runAutomationForMaster($masterId);
 
         $this->view('master/dashboard/index', [
             'stats' => $this->demands->stats(),
@@ -190,7 +192,7 @@ class MasterController extends Controller
     public function demands(): void
     {
         $this->requireAuth('master');
-        $this->runDeadlineAutomation((int)$_SESSION['user']['id']);
+        $this->deadlineService->runAutomationForMaster((int)$_SESSION['user']['id']);
 
         $filters = [
             'status' => trim($_GET['status'] ?? ''),
@@ -299,31 +301,9 @@ class MasterController extends Controller
     {
         $this->requireAuth('master');
         $masterId = (int)$_SESSION['user']['id'];
-        $this->runDeadlineAutomation($masterId);
+        $this->deadlineService->runAutomationForMaster($masterId);
         $list = $this->notifications->forUser($masterId, 50);
         $this->view('master/notifications/index', ['notifications' => $list]);
-    }
-
-    /**
-     * Executa automações de prazo:
-     * - marca demandas vencidas como atrasadas;
-     * - gera alerta de 24h para o Master sem duplicação excessiva.
-     */
-    private function runDeadlineAutomation(int $masterId): void
-    {
-        $this->demands->refreshOverdueStatuses();
-
-        foreach ($this->demands->dueIn24Hours() as $item) {
-            if (!$this->notifications->existsRecent($masterId, 'prazo_24h', (int)$item['id'])) {
-                $this->notifications->notify(
-                    $masterId,
-                    'Prazo próximo',
-                    "A demanda {$item['emenda']} vence em menos de 24h. Responsável: {$item['funcionario_nome']}",
-                    'prazo_24h',
-                    (int)$item['id']
-                );
-            }
-        }
     }
 
     /**

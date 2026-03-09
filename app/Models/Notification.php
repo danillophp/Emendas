@@ -9,10 +9,16 @@ class Notification
     /**
      * Função reaproveitável para registrar notificações internas.
      */
-    public function notify(int $usuarioId, string $titulo, string $mensagem, string $tipo, ?int $referenciaId = null): bool
-    {
-        $sql = 'INSERT INTO notificacoes (usuario_id, titulo, mensagem, tipo, referencia_id)
-                VALUES (:usuario_id, :titulo, :mensagem, :tipo, :referencia_id)';
+    public function notify(
+        int $usuarioId,
+        string $titulo,
+        string $mensagem,
+        string $tipo,
+        ?int $referenciaId = null,
+        ?string $referenciaTabela = null
+    ): bool {
+        $sql = 'INSERT INTO notificacoes (usuario_id, titulo, mensagem, tipo, referencia_id, referencia_tabela)
+                VALUES (:usuario_id, :titulo, :mensagem, :tipo, :referencia_id, :referencia_tabela)';
 
         return Database::connection()->prepare($sql)->execute([
             'usuario_id' => $usuarioId,
@@ -20,6 +26,7 @@ class Notification
             'mensagem' => $mensagem,
             'tipo' => $tipo,
             'referencia_id' => $referenciaId,
+            'referencia_tabela' => $referenciaTabela,
         ]);
     }
 
@@ -30,22 +37,26 @@ class Notification
             (string)$data['titulo'],
             (string)$data['mensagem'],
             (string)$data['tipo'],
-            isset($data['referencia_id']) ? (int)$data['referencia_id'] : null
+            isset($data['referencia_id']) ? (int)$data['referencia_id'] : null,
+            $data['referencia_tabela'] ?? null
         );
     }
 
-    public function existsRecent(int $usuarioId, string $type, int $referenciaId): bool
+    /**
+     * Verifica se já existe notificação recente para evitar duplicidade excessiva.
+     */
+    public function existsRecent(int $usuarioId, string $type, int $referenciaId, int $hoursWindow = 24): bool
     {
         $sql = 'SELECT id FROM notificacoes
                 WHERE usuario_id = :usuario_id AND tipo = :tipo AND referencia_id = :referencia_id
-                AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                AND created_at >= DATE_SUB(NOW(), INTERVAL :hours_window HOUR)
                 LIMIT 1';
         $stmt = Database::connection()->prepare($sql);
-        $stmt->execute([
-            'usuario_id' => $usuarioId,
-            'tipo' => $type,
-            'referencia_id' => $referenciaId,
-        ]);
+        $stmt->bindValue(':usuario_id', $usuarioId, \PDO::PARAM_INT);
+        $stmt->bindValue(':tipo', $type);
+        $stmt->bindValue(':referencia_id', $referenciaId, \PDO::PARAM_INT);
+        $stmt->bindValue(':hours_window', $hoursWindow, \PDO::PARAM_INT);
+        $stmt->execute();
         return (bool)$stmt->fetch();
     }
 

@@ -118,6 +118,7 @@ CREATE TABLE `notificacoes` (
   KEY `idx_notificacoes_tipo` (`tipo`),
   KEY `idx_notificacoes_referencia` (`referencia_tabela`, `referencia_id`),
   KEY `idx_notificacoes_created_at` (`created_at`),
+  KEY `idx_notificacoes_automacao` (`usuario_id`, `tipo`, `referencia_id`, `created_at`),
   CONSTRAINT `fk_notificacoes_usuario`
     FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
     ON UPDATE CASCADE ON DELETE CASCADE

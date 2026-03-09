@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Demand;
 use App\Models\Notification;
+use App\Services\NotificationDeadlineService;
 use App\Models\SystemLog;
 use App\Models\User;
 
@@ -14,7 +15,8 @@ class EmployeeController extends Controller
         private readonly Demand $demands = new Demand(),
         private readonly Notification $notifications = new Notification(),
         private readonly User $users = new User(),
-        private readonly SystemLog $logs = new SystemLog()
+        private readonly SystemLog $logs = new SystemLog(),
+        private readonly NotificationDeadlineService $deadlineService = new NotificationDeadlineService()
     ) {
     }
 
@@ -75,16 +77,14 @@ class EmployeeController extends Controller
             redirect('funcionario/demandas');
         }
 
-        // Notifica automaticamente o Master sobre conclusão.
+        // Notifica automaticamente o Master sobre conclusão com referência da demanda.
         $masterId = $this->users->findActiveMasterId();
         if ($masterId !== null) {
-            $this->notifications->create([
-                'usuario_id' => $masterId,
-                'titulo' => 'Demanda concluída',
-                'mensagem' => $_SESSION['user']['name'] . ' concluiu a demanda: ' . $ownedDemand['emenda'],
-                'tipo' => 'conclusao_demanda',
-                'referencia_id' => $demandId,
-            ]);
+            $this->deadlineService->notifyDemandCompletedForMaster(
+                $masterId,
+                $ownedDemand,
+                (string)($_SESSION['user']['name'] ?? 'Funcionário')
+            );
         }
 
         // Auditoria da conclusão para rastreabilidade operacional.
