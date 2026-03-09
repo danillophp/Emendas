@@ -11,6 +11,8 @@ use App\Services\NotificationDeadlineService;
 
 class MasterController extends Controller
 {
+    private const DEMAND_STATUS = ['pendente', 'em_andamento', 'concluida', 'atrasada'];
+
     public function __construct(
         private readonly User $users = new User(),
         private readonly Demand $demands = new Demand(),
@@ -38,13 +40,13 @@ class MasterController extends Controller
     {
         $this->requireAuth('master');
 
-        $search = trim($_GET['search'] ?? '');
+        $search = trim((string)($_GET['search'] ?? ''));
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 8;
         $offset = ($page - 1) * $perPage;
 
-        $total = $this->users->countEmployees($search ?: null);
-        $employees = $this->users->paginatedEmployees($perPage, $offset, $search ?: null);
+        $total = $this->users->countEmployees($search !== '' ? $search : null);
+        $employees = $this->users->paginatedEmployees($perPage, $offset, $search !== '' ? $search : null);
 
         $this->view('master/employees/index', [
             'employees' => $employees,
@@ -57,34 +59,24 @@ class MasterController extends Controller
     public function createEmployee(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
+        $this->assertCsrfOrRedirect('master/employees');
+
+        $payload = $this->validateEmployeePayload();
+        if (!$payload['ok']) {
+            flash('error', implode(' ', $payload['errors']));
             redirect('master/employees');
         }
 
-        $data = [
-            'nome_completo' => trim($_POST['nome_completo'] ?? ''),
-            'email' => trim($_POST['email'] ?? ''),
-            'endereco' => trim($_POST['endereco'] ?? ''),
-            'whatsapp' => trim($_POST['whatsapp'] ?? ''),
-            'numero_decreto' => trim($_POST['numero_decreto'] ?? ''),
-            'data_nascimento' => trim($_POST['data_nascimento'] ?? ''),
-        ];
-
-        $errors = validate_required($data, ['nome_completo', 'email', 'endereco', 'whatsapp', 'numero_decreto', 'data_nascimento']);
+        $data = $payload['data'];
         if ($this->users->emailExists($data['email'])) {
-            $errors[] = 'E-mail já cadastrado.';
+            flash('error', 'E-mail já cadastrado.');
+            redirect('master/employees');
         }
         if ($this->users->decreeExists($data['numero_decreto'])) {
-            $errors[] = 'Número de decreto já cadastrado.';
-        }
-
-        if ($errors) {
-            flash('error', implode(' ', $errors));
+            flash('error', 'Número de decreto já cadastrado.');
             redirect('master/employees');
         }
 
-        // Regra do negócio: usuário = decreto | senha inicial = data de nascimento (sem separadores).
         $this->users->createEmployee([
             'nome_completo' => $data['nome_completo'],
             'email' => $data['email'],
@@ -92,6 +84,7 @@ class MasterController extends Controller
             'whatsapp' => $data['whatsapp'],
             'numero_decreto' => $data['numero_decreto'],
             'data_nascimento' => $data['data_nascimento'],
+            // Regra de credencial inicial.
             'usuario' => $data['numero_decreto'],
             'senha_hash' => password_hash(normalize_birth_password($data['data_nascimento']), PASSWORD_DEFAULT),
         ]);
@@ -104,21 +97,21 @@ class MasterController extends Controller
     public function updateEmployee(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
+        $this->assertCsrfOrRedirect('master/employees');
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0 || !$this->users->existsEmployeeById($id)) {
+            flash('error', 'Funcionário inválido.');
             redirect('master/employees');
         }
 
-        $id = (int)($_POST['id'] ?? 0);
-        $data = [
-            'nome_completo' => trim($_POST['nome_completo'] ?? ''),
-            'email' => trim($_POST['email'] ?? ''),
-            'endereco' => trim($_POST['endereco'] ?? ''),
-            'whatsapp' => trim($_POST['whatsapp'] ?? ''),
-            'numero_decreto' => trim($_POST['numero_decreto'] ?? ''),
-            'data_nascimento' => trim($_POST['data_nascimento'] ?? ''),
-        ];
+        $payload = $this->validateEmployeePayload();
+        if (!$payload['ok']) {
+            flash('error', implode(' ', $payload['errors']));
+            redirect('master/employees');
+        }
 
+        $data = $payload['data'];
         if ($this->users->emailExists($data['email'], $id) || $this->users->decreeExists($data['numero_decreto'], $id)) {
             flash('error', 'E-mail ou decreto já em uso.');
             redirect('master/employees');
@@ -133,15 +126,17 @@ class MasterController extends Controller
     public function changeEmployeePassword(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
-            redirect('master/employees');
-        }
+        $this->assertCsrfOrRedirect('master/employees');
 
         $id = (int)($_POST['id'] ?? 0);
         $newPassword = (string)($_POST['new_password'] ?? '');
 
-        if ($id <= 0 || strlen($newPassword) < 8) {
+        if ($id <= 0 || !$this->users->existsEmployeeById($id)) {
+            flash('error', 'Funcionário inválido.');
+            redirect('master/employees');
+        }
+
+        if (strlen($newPassword) < 8) {
             flash('error', 'Informe uma nova senha com no mínimo 8 caracteres.');
             redirect('master/employees');
         }
@@ -155,14 +150,17 @@ class MasterController extends Controller
     public function toggleEmployee(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
+        $this->assertCsrfOrRedirect('master/employees');
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0 || !$this->users->existsEmployeeById($id)) {
+            flash('error', 'Funcionário inválido.');
             redirect('master/employees');
         }
 
-        $id = (int)($_POST['id'] ?? 0);
         $active = (int)($_POST['active'] ?? 0) === 1;
         $this->users->toggleEmployeeStatus($id, $active);
+
         $this->logAction('toggle', 'usuarios', $id, $active ? 'Funcionário ativado' : 'Funcionário desativado');
         flash('success', $active ? 'Funcionário ativado.' : 'Funcionário desativado.');
         redirect('master/employees');
@@ -171,18 +169,15 @@ class MasterController extends Controller
     public function deleteEmployee(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
-            redirect('master/employees');
-        }
+        $this->assertCsrfOrRedirect('master/employees');
 
         $id = (int)($_POST['id'] ?? 0);
-        if ($id <= 0) {
+        if ($id <= 0 || !$this->users->existsEmployeeById($id)) {
             flash('error', 'Funcionário inválido.');
             redirect('master/employees');
         }
 
-        // Segurança operacional: não remove fisicamente para preservar histórico.
+        // Exclusão lógica para preservar histórico.
         $this->users->toggleEmployeeStatus($id, false);
         $this->logAction('soft_delete', 'usuarios', $id, 'Funcionário desativado por ação de exclusão lógica');
         flash('success', 'Funcionário desativado com sucesso.');
@@ -195,10 +190,10 @@ class MasterController extends Controller
         $this->deadlineService->runAutomationForMaster((int)$_SESSION['user']['id']);
 
         $filters = [
-            'status' => trim($_GET['status'] ?? ''),
-            'funcionario_id' => trim($_GET['funcionario_id'] ?? ''),
-            'prazo_de' => trim($_GET['prazo_de'] ?? ''),
-            'prazo_ate' => trim($_GET['prazo_ate'] ?? ''),
+            'status' => trim((string)($_GET['status'] ?? '')),
+            'funcionario_id' => trim((string)($_GET['funcionario_id'] ?? '')),
+            'prazo_de' => trim((string)($_GET['prazo_de'] ?? '')),
+            'prazo_ate' => trim((string)($_GET['prazo_ate'] ?? '')),
         ];
 
         $page = max(1, (int)($_GET['page'] ?? 1));
@@ -218,28 +213,16 @@ class MasterController extends Controller
     public function createDemand(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
+        $this->assertCsrfOrRedirect('master/demands');
+
+        $payload = $this->validateDemandPayload();
+        if (!$payload['ok']) {
+            flash('error', implode(' ', $payload['errors']));
             redirect('master/demands');
         }
 
-        $prazoEntrega = trim((string)($_POST['prazo_entrega'] ?? ''));
-        if ($prazoEntrega === '') {
-            flash('error', 'Informe o prazo de entrega da demanda.');
-            redirect('master/demands');
-        }
-
-        $this->demands->create([
-            'emenda' => trim($_POST['emenda'] ?? ''),
-            'nome_politico' => trim($_POST['nome_politico'] ?? ''),
-            'data_emenda' => $_POST['data_emenda'] ?? date('Y-m-d'),
-            'tipo_emenda' => trim($_POST['tipo_emenda'] ?? ''),
-            'observacao' => trim($_POST['observacao'] ?? ''),
-            'prazo_entrega' => date('Y-m-d H:i:s', strtotime($prazoEntrega)),
-            'funcionario_id' => (int)($_POST['funcionario_id'] ?? 0),
-            'status' => $_POST['status'] ?? 'pendente',
-            'criado_por' => (int)$_SESSION['user']['id'],
-        ]);
+        $data = $payload['data'];
+        $this->demands->create($data + ['criado_por' => (int)$_SESSION['user']['id']]);
 
         $this->logAction('create', 'demandas', null, 'Demanda cadastrada pelo Master');
         flash('success', 'Demanda cadastrada com sucesso.');
@@ -249,29 +232,23 @@ class MasterController extends Controller
     public function updateDemand(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
+        $this->assertCsrfOrRedirect('master/demands');
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            flash('error', 'Demanda inválida.');
             redirect('master/demands');
         }
 
-        $prazoEntrega = trim((string)($_POST['prazo_entrega'] ?? ''));
-        if ($prazoEntrega === '') {
-            flash('error', 'Prazo de entrega inválido.');
+        $payload = $this->validateDemandPayload();
+        if (!$payload['ok']) {
+            flash('error', implode(' ', $payload['errors']));
             redirect('master/demands');
         }
 
-        $this->demands->update((int)$_POST['id'], [
-            'emenda' => trim($_POST['emenda'] ?? ''),
-            'nome_politico' => trim($_POST['nome_politico'] ?? ''),
-            'data_emenda' => $_POST['data_emenda'] ?? date('Y-m-d'),
-            'tipo_emenda' => trim($_POST['tipo_emenda'] ?? ''),
-            'observacao' => trim($_POST['observacao'] ?? ''),
-            'prazo_entrega' => date('Y-m-d H:i:s', strtotime($prazoEntrega)),
-            'funcionario_id' => (int)($_POST['funcionario_id'] ?? 0),
-            'status' => $_POST['status'] ?? 'pendente',
-        ]);
+        $this->demands->update($id, $payload['data']);
 
-        $this->logAction('update', 'demandas', (int)$_POST['id'], 'Demanda atualizada pelo Master');
+        $this->logAction('update', 'demandas', $id, 'Demanda atualizada pelo Master');
         flash('success', 'Demanda atualizada com sucesso.');
         redirect('master/demands');
     }
@@ -279,12 +256,16 @@ class MasterController extends Controller
     public function deleteDemand(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
+        $this->assertCsrfOrRedirect('master/demands');
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            flash('error', 'Demanda inválida.');
             redirect('master/demands');
         }
-        $this->demands->delete((int)($_POST['id'] ?? 0));
-        $this->logAction('delete', 'demandas', (int)($_POST['id'] ?? 0), 'Demanda removida pelo Master');
+
+        $this->demands->delete($id);
+        $this->logAction('delete', 'demandas', $id, 'Demanda removida pelo Master');
         flash('success', 'Demanda removida.');
         redirect('master/demands');
     }
@@ -292,10 +273,7 @@ class MasterController extends Controller
     public function readNotification(): void
     {
         $this->requireAuth('master');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
-            redirect('master/notifications');
-        }
+        $this->assertCsrfOrRedirect('master/notifications');
 
         $notificationId = (int)($_POST['id'] ?? 0);
         $this->notifications->markRead($notificationId, (int)$_SESSION['user']['id']);
@@ -308,8 +286,89 @@ class MasterController extends Controller
         $this->requireAuth('master');
         $masterId = (int)$_SESSION['user']['id'];
         $this->deadlineService->runAutomationForMaster($masterId);
-        $list = $this->notifications->forUser($masterId, 50);
-        $this->view('master/notifications/index', ['notifications' => $list]);
+
+        $this->view('master/notifications/index', [
+            'notifications' => $this->notifications->forUser($masterId, 50),
+        ]);
+    }
+
+    /**
+     * Validação centralizada de payload de funcionário.
+     *
+     * @return array{ok:bool,data:array<string,string>,errors:array<int,string>}
+     */
+    private function validateEmployeePayload(): array
+    {
+        $data = [
+            'nome_completo' => trim((string)($_POST['nome_completo'] ?? '')),
+            'email' => trim((string)($_POST['email'] ?? '')),
+            'endereco' => trim((string)($_POST['endereco'] ?? '')),
+            'whatsapp' => trim((string)($_POST['whatsapp'] ?? '')),
+            'numero_decreto' => trim((string)($_POST['numero_decreto'] ?? '')),
+            'data_nascimento' => trim((string)($_POST['data_nascimento'] ?? '')),
+        ];
+
+        $errors = validate_required($data, ['nome_completo', 'email', 'endereco', 'whatsapp', 'numero_decreto', 'data_nascimento']);
+
+        if ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'E-mail inválido.';
+        }
+
+        if ($data['data_nascimento'] !== '' && strtotime($data['data_nascimento']) === false) {
+            $errors[] = 'Data de nascimento inválida.';
+        }
+
+        return ['ok' => $errors === [], 'data' => $data, 'errors' => $errors];
+    }
+
+    /**
+     * Validação centralizada de payload de demanda.
+     *
+     * @return array{ok:bool,data:array<string,mixed>,errors:array<int,string>}
+     */
+    private function validateDemandPayload(): array
+    {
+        $data = [
+            'emenda' => trim((string)($_POST['emenda'] ?? '')),
+            'nome_politico' => trim((string)($_POST['nome_politico'] ?? '')),
+            'data_emenda' => trim((string)($_POST['data_emenda'] ?? '')),
+            'tipo_emenda' => trim((string)($_POST['tipo_emenda'] ?? '')),
+            'observacao' => trim((string)($_POST['observacao'] ?? '')),
+            'prazo_entrega' => trim((string)($_POST['prazo_entrega'] ?? '')),
+            'funcionario_id' => (int)($_POST['funcionario_id'] ?? 0),
+            'status' => trim((string)($_POST['status'] ?? 'pendente')),
+        ];
+
+        $errors = validate_required($data, ['emenda', 'nome_politico', 'data_emenda', 'tipo_emenda', 'prazo_entrega']);
+
+        if ($data['funcionario_id'] <= 0 || !$this->users->existsEmployeeById($data['funcionario_id'])) {
+            $errors[] = 'Selecione um funcionário válido para a demanda.';
+        }
+
+        if (!in_array($data['status'], self::DEMAND_STATUS, true)) {
+            $errors[] = 'Status da demanda inválido.';
+        }
+
+        if (strtotime($data['data_emenda']) === false) {
+            $errors[] = 'Data da emenda inválida.';
+        }
+
+        $prazoTimestamp = strtotime($data['prazo_entrega']);
+        if ($prazoTimestamp === false) {
+            $errors[] = 'Prazo de entrega inválido.';
+        } else {
+            $data['prazo_entrega'] = date('Y-m-d H:i:s', $prazoTimestamp);
+        }
+
+        return ['ok' => $errors === [], 'data' => $data, 'errors' => $errors];
+    }
+
+    private function assertCsrfOrRedirect(string $redirectPath): void
+    {
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Falha de segurança na requisição.');
+            redirect($redirectPath);
+        }
     }
 
     /**

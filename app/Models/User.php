@@ -132,6 +132,14 @@ class User
         return (bool)$stmt->fetch();
     }
 
+
+    public function existsEmployeeById(int $id): bool
+    {
+        $stmt = Database::connection()->prepare('SELECT id FROM usuarios WHERE id = :id AND perfil = "funcionario" LIMIT 1');
+        $stmt->execute(['id' => $id]);
+        return (bool)$stmt->fetch();
+    }
+
     public function allActiveEmployees(): array
     {
         $sql = "SELECT id, nome_completo FROM usuarios WHERE perfil = 'funcionario' AND ativo = 1 ORDER BY nome_completo";
