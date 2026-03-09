@@ -72,7 +72,28 @@ function validate_required(array $data, array $fields): array
 
 function normalize_birth_password(string $birthDate): string
 {
-    return preg_replace('/\D/', '', $birthDate) ?? '';
+    $birthDate = trim($birthDate);
+
+    // Regra de negócio: senha inicial no formato DDMMAAAA (sem separadores).
+    foreach (['Y-m-d', 'd/m/Y', 'd-m-Y'] as $format) {
+        $date = \DateTime::createFromFormat($format, $birthDate);
+        if ($date instanceof \DateTime) {
+            return $date->format('dmY');
+        }
+    }
+
+    // Fallback para entradas sem separador ou formatos inesperados.
+    $digits = preg_replace('/\D/', '', $birthDate) ?? '';
+    if (strlen($digits) === 8) {
+        // Se vier em AAAAMMDD, converte para DDMMAAAA.
+        if (preg_match('/^(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])$/', $digits) === 1) {
+            return substr($digits, 6, 2) . substr($digits, 4, 2) . substr($digits, 0, 4);
+        }
+
+        return $digits;
+    }
+
+    return $digits;
 }
 
 function client_ip(): ?string

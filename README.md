@@ -75,7 +75,7 @@ Campos obrigatórios:
 
 Regras de credencial inicial:
 - usuário padrão = número do decreto
-- senha padrão = data de nascimento sem separadores
+- senha padrão = data de nascimento no formato DDMMAAAA (sem barra, espaço ou traço)
 - senha em hash (`password_hash`)
 - validação com `password_verify`
 - troca obrigatória no primeiro login
