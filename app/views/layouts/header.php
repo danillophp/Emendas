@@ -22,9 +22,9 @@
         <a class="nav-link" href="<?= url('master/demands') ?>"><i class="bi bi-list-task"></i> Demandas</a>
         <a class="nav-link" href="<?= url('master/notifications') ?>"><i class="bi bi-bell"></i> Notificações</a>
       <?php else: ?>
-        <a class="nav-link" href="<?= url('employee/dashboard') ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        <a class="nav-link" href="<?= url('employee/demands') ?>"><i class="bi bi-list-check"></i> Minhas Demandas</a>
-        <a class="nav-link" href="<?= url('employee/notifications') ?>"><i class="bi bi-bell"></i> Notificações</a>
+        <a class="nav-link" href="<?= url('funcionario/dashboard') ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a class="nav-link" href="<?= url('funcionario/demandas') ?>"><i class="bi bi-list-check"></i> Minhas Demandas</a>
+        <a class="nav-link" href="<?= url('funcionario/notificacoes') ?>"><i class="bi bi-bell"></i> Notificações</a>
       <?php endif; ?>
     </nav>
   </aside>
@@ -34,7 +34,7 @@
         <strong><?= e($_SESSION['user']['name']) ?></strong>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <a class="btn btn-outline-primary btn-sm" href="<?= url(($role === 'master') ? 'master/notifications' : 'employee/notifications') ?>">
+        <a class="btn btn-outline-primary btn-sm" href="<?= url(($role === 'master') ? 'master/notifications' : 'funcionario/notificacoes') ?>">
           <i class="bi bi-bell"></i> <span class="badge bg-warning text-dark"><?= (int)$headerUnreadCount ?></span>
         </a>
         <form method="post" action="<?= url('logout') ?>" class="mb-0">

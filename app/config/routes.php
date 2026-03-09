@@ -2,6 +2,7 @@
 
 use App\Controllers\AuthController;
 use App\Controllers\EmployeeController;
+use App\Controllers\FuncionarioController;
 use App\Controllers\MasterController;
 
 $router->get('/', [AuthController::class, 'showLogin']);
@@ -11,6 +12,7 @@ $router->get('/change-password', [AuthController::class, 'showChangePassword']);
 $router->post('/change-password', [AuthController::class, 'changePassword']);
 $router->post('/logout', [AuthController::class, 'logout']);
 
+// Área Master
 $router->get('/master/dashboard', [MasterController::class, 'dashboard']);
 $router->get('/master/employees', [MasterController::class, 'employees']);
 $router->post('/master/employees/create', [MasterController::class, 'createEmployee']);
@@ -24,6 +26,14 @@ $router->post('/master/demands/delete', [MasterController::class, 'deleteDemand'
 $router->get('/master/notifications', [MasterController::class, 'notifications']);
 $router->post('/master/notifications/read', [MasterController::class, 'readNotification']);
 
+// Área Funcionário (nomenclatura oficial)
+$router->get('/funcionario/dashboard', [FuncionarioController::class, 'dashboard']);
+$router->get('/funcionario/demandas', [FuncionarioController::class, 'demands']);
+$router->post('/funcionario/demandas/concluir', [FuncionarioController::class, 'completeDemand']);
+$router->get('/funcionario/notificacoes', [FuncionarioController::class, 'notifications']);
+$router->post('/funcionario/notificacoes/lida', [FuncionarioController::class, 'readNotification']);
+
+// Compatibilidade retroativa com rotas antigas /employee
 $router->get('/employee/dashboard', [EmployeeController::class, 'dashboard']);
 $router->get('/employee/demands', [EmployeeController::class, 'demands']);
 $router->post('/employee/demands/complete', [EmployeeController::class, 'completeDemand']);

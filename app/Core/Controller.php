@@ -3,6 +3,7 @@
 namespace App\Core;
 
 use App\Middleware\AuthMiddleware;
+use App\Middleware\RoleMiddleware;
 use App\Models\Notification;
 
 class Controller
@@ -29,13 +30,11 @@ class Controller
 
     protected function requireAuth(?string $role = null): void
     {
-        if ($role === null) {
-            AuthMiddleware::ensureAuthenticated();
-            AuthMiddleware::ensurePasswordChanged();
-            return;
-        }
-
-        AuthMiddleware::ensureRole($role);
+        AuthMiddleware::ensureAuthenticated();
         AuthMiddleware::ensurePasswordChanged();
+
+        if ($role !== null) {
+            RoleMiddleware::ensure($role);
+        }
     }
 }

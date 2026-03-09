@@ -20,7 +20,7 @@ class AuthController extends Controller
     public function showLogin(): void
     {
         if (!empty($_SESSION['user'])) {
-            redirect($_SESSION['user']['role'] === 'master' ? 'master/dashboard' : 'employee/dashboard');
+            redirect($_SESSION['user']['role'] === 'master' ? 'master/dashboard' : 'funcionario/dashboard');
         }
 
         $this->view('auth/login');
@@ -29,15 +29,15 @@ class AuthController extends Controller
     public function login(): void
     {
         if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Sua sessão expirou. Tente novamente.');
+            flash('error', 'Sua sessão expirou. Atualize a página e tente novamente.');
             redirect('login');
         }
 
-        $username = trim($_POST['usuario'] ?? '');
-        $password = $_POST['senha'] ?? '';
+        $username = trim((string)($_POST['usuario'] ?? ''));
+        $password = (string)($_POST['senha'] ?? '');
 
         if ($username === '' || $password === '') {
-            flash('error', 'Informe usuário e senha.');
+            flash('error', 'Informe usuário e senha para entrar no sistema.');
             redirect('login');
         }
 
@@ -49,7 +49,7 @@ class AuthController extends Controller
         }
 
         if (!(bool)$user['ativo']) {
-            flash('error', 'Seu acesso está inativo. Contate o administrador.');
+            flash('error', 'Seu usuário está inativo. Contate o administrador Master.');
             redirect('login');
         }
 
@@ -77,16 +77,23 @@ class AuthController extends Controller
         ]);
 
         if ((bool)$user['primeiro_login'] && $user['perfil'] === 'funcionario') {
-            flash('success', 'Primeiro acesso detectado. Defina sua nova senha.');
+            flash('success', 'Primeiro acesso detectado. Defina sua nova senha para continuar.');
             redirect('change-password');
         }
 
-        redirect($user['perfil'] === 'master' ? 'master/dashboard' : 'employee/dashboard');
+        redirect($user['perfil'] === 'master' ? 'master/dashboard' : 'funcionario/dashboard');
     }
 
     public function showChangePassword(): void
     {
         $this->requireAuth();
+
+        $role = $_SESSION['user']['role'] ?? '';
+        if ($role !== 'funcionario' && $role !== 'master') {
+            flash('error', 'Perfil inválido para alteração de senha.');
+            redirect('login');
+        }
+
         $this->view('auth/change-password');
     }
 
@@ -95,12 +102,12 @@ class AuthController extends Controller
         $this->requireAuth();
 
         if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Sua sessão expirou. Tente novamente.');
+            flash('error', 'Sua sessão expirou. Atualize a página e tente novamente.');
             redirect('change-password');
         }
 
-        $password = $_POST['password'] ?? '';
-        $confirm = $_POST['password_confirm'] ?? '';
+        $password = (string)($_POST['password'] ?? '');
+        $confirm = (string)($_POST['password_confirm'] ?? '');
 
         if (strlen($password) < 8) {
             flash('error', 'A nova senha deve ter no mínimo 8 caracteres.');
@@ -116,14 +123,21 @@ class AuthController extends Controller
         $_SESSION['user']['first_login'] = false;
 
         flash('success', 'Senha alterada com sucesso.');
-        redirect($_SESSION['user']['role'] === 'master' ? 'master/dashboard' : 'employee/dashboard');
+        redirect($_SESSION['user']['role'] === 'master' ? 'master/dashboard' : 'funcionario/dashboard');
     }
 
     public function logout(): void
     {
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Requisição inválida de logout.');
+            redirect('login');
+        }
+
         if (!empty($_SESSION['user']['id'])) {
             $userId = (int)$_SESSION['user']['id'];
             $this->users->updateSessionToken($userId, null);
+
+            // Auditoria de encerramento de sessão.
             $this->logs->create([
                 'usuario_id' => $userId,
                 'acao' => 'logout',

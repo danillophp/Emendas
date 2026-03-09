@@ -16,27 +16,34 @@ class AuthMiddleware
         self::ensureSessionIsValid();
     }
 
-    public static function ensureRole(string $role): void
-    {
-        self::ensureAuthenticated();
-
-        $currentRole = $_SESSION['user']['role'] ?? '';
-        if ($currentRole !== $role) {
-            flash('error', 'Você não tem permissão para acessar esta área.');
-            redirect($currentRole === 'master' ? 'master/dashboard' : 'employee/dashboard');
-        }
-    }
-
+    /**
+     * Regra obrigatória:
+     * Funcionário em primeiro login precisa alterar a senha
+     * antes de acessar qualquer painel.
+     */
     public static function ensurePasswordChanged(): void
     {
         $isFirstLogin = !empty($_SESSION['user']['first_login']);
         $isEmployee = ($_SESSION['user']['role'] ?? '') === 'funcionario';
-        $isChangePasswordRoute = str_contains($_SERVER['REQUEST_URI'] ?? '', '/change-password');
 
-        if ($isEmployee && $isFirstLogin && !$isChangePasswordRoute) {
-            flash('error', 'No primeiro acesso, você precisa alterar sua senha.');
-            redirect('change-password');
+        if (!$isEmployee || !$isFirstLogin) {
+            return;
         }
+
+        $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+        $basePath = rtrim(APP_BASE_PATH, '/');
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+            $path = substr($path, strlen($basePath));
+        }
+        $path = '/' . ltrim($path, '/');
+
+        $allowedDuringFirstLogin = ['/change-password', '/logout'];
+        if (in_array($path, $allowedDuringFirstLogin, true)) {
+            return;
+        }
+
+        flash('error', 'No primeiro acesso, altere sua senha para continuar.');
+        redirect('change-password');
     }
 
     /**

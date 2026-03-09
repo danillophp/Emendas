@@ -26,7 +26,7 @@ class EmployeeController extends Controller
         // Regras de vencimento: mantém status atrasado sincronizado.
         $this->demands->refreshOverdueStatuses();
 
-        $this->view('employee/dashboard/index', [
+        $this->view('funcionario/dashboard/index', [
             'summary' => $this->demands->employeeSummary($employeeId),
         ]);
     }
@@ -35,7 +35,7 @@ class EmployeeController extends Controller
     {
         $this->requireAuth('funcionario');
         $this->demands->refreshOverdueStatuses();
-        $this->view('employee/demands/index', [
+        $this->view('funcionario/demandas/index', [
             'demands' => $this->demands->byEmployee((int)$_SESSION['user']['id']),
         ]);
     }
@@ -45,7 +45,7 @@ class EmployeeController extends Controller
         $this->requireAuth('funcionario');
         if (!verify_csrf($_POST['_csrf'] ?? null)) {
             flash('error', 'Falha de segurança na requisição.');
-            redirect('employee/demands');
+            redirect('funcionario/demandas');
         }
 
         $demandId = (int)($_POST['id'] ?? 0);
@@ -54,7 +54,7 @@ class EmployeeController extends Controller
         $done = $this->demands->markCompleted($demandId, (int)$_SESSION['user']['id'], $note);
         if (!$done) {
             flash('error', 'Não foi possível concluir esta demanda. Verifique se ela pertence a você.');
-            redirect('employee/demands');
+            redirect('funcionario/demandas');
         }
 
         $masterId = $this->users->findActiveMasterId();
@@ -79,7 +79,7 @@ class EmployeeController extends Controller
         ]);
 
         flash('success', 'Demanda concluída com sucesso.');
-        redirect('employee/demands');
+        redirect('funcionario/demandas');
     }
 
     public function readNotification(): void
@@ -87,13 +87,13 @@ class EmployeeController extends Controller
         $this->requireAuth('funcionario');
         if (!verify_csrf($_POST['_csrf'] ?? null)) {
             flash('error', 'Falha de segurança na requisição.');
-            redirect('employee/notifications');
+            redirect('funcionario/notificacoes');
         }
 
         $notificationId = (int)($_POST['id'] ?? 0);
         $this->notifications->markRead($notificationId, (int)$_SESSION['user']['id']);
         flash('success', 'Notificação marcada como lida.');
-        redirect('employee/notifications');
+        redirect('funcionario/notificacoes');
     }
 
     public function notifications(): void
@@ -101,6 +101,6 @@ class EmployeeController extends Controller
         $this->requireAuth('funcionario');
         $userId = (int)$_SESSION['user']['id'];
         $list = $this->notifications->forUser($userId);
-        $this->view('employee/notifications/index', ['notifications' => $list]);
+        $this->view('funcionario/notificacoes/index', ['notifications' => $list]);
     }
 }
