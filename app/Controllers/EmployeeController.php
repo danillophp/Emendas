@@ -23,7 +23,7 @@ class EmployeeController extends Controller
         $this->requireAuth('funcionario');
         $employeeId = (int)$_SESSION['user']['id'];
 
-        // Regras de vencimento: mantém status atrasado sincronizado.
+        // Mantém status atrasado sincronizado em toda navegação do funcionário.
         $this->demands->refreshOverdueStatuses();
 
         $this->view('funcionario/dashboard/index', [
@@ -35,45 +35,65 @@ class EmployeeController extends Controller
     {
         $this->requireAuth('funcionario');
         $this->demands->refreshOverdueStatuses();
+
+        // Regra crítica: funcionário só recebe demandas do próprio usuário.
+        $employeeId = (int)$_SESSION['user']['id'];
+        $list = $this->demands->byEmployee($employeeId);
+
         $this->view('funcionario/demandas/index', [
-            'demands' => $this->demands->byEmployee((int)$_SESSION['user']['id']),
+            'demands' => $list,
         ]);
     }
 
     public function completeDemand(): void
     {
         $this->requireAuth('funcionario');
+
         if (!verify_csrf($_POST['_csrf'] ?? null)) {
             flash('error', 'Falha de segurança na requisição.');
             redirect('funcionario/demandas');
         }
 
+        $employeeId = (int)$_SESSION['user']['id'];
         $demandId = (int)($_POST['id'] ?? 0);
-        $note = trim($_POST['completion_note'] ?? '');
+        $note = trim((string)($_POST['completion_note'] ?? ''));
 
-        $done = $this->demands->markCompleted($demandId, (int)$_SESSION['user']['id'], $note);
-        if (!$done) {
-            flash('error', 'Não foi possível concluir esta demanda. Verifique se ela pertence a você.');
+        if ($demandId <= 0) {
+            flash('error', 'Demanda inválida para conclusão.');
             redirect('funcionario/demandas');
         }
 
+        $ownedDemand = $this->demands->findOwnedById($demandId, $employeeId);
+        if (!$ownedDemand) {
+            flash('error', 'Você não tem permissão para concluir esta demanda.');
+            redirect('funcionario/demandas');
+        }
+
+        $done = $this->demands->markCompleted($demandId, $employeeId, $note);
+        if (!$done) {
+            flash('error', 'Não foi possível concluir esta demanda.');
+            redirect('funcionario/demandas');
+        }
+
+        // Notifica automaticamente o Master sobre conclusão.
         $masterId = $this->users->findActiveMasterId();
         if ($masterId !== null) {
             $this->notifications->create([
                 'usuario_id' => $masterId,
                 'titulo' => 'Demanda concluída',
-                'mensagem' => $_SESSION['user']['name'] . ' concluiu a demanda #' . $demandId,
+                'mensagem' => $_SESSION['user']['name'] . ' concluiu a demanda: ' . $ownedDemand['emenda'],
                 'tipo' => 'conclusao_demanda',
                 'referencia_id' => $demandId,
             ]);
         }
 
+        // Auditoria da conclusão para rastreabilidade operacional.
         $this->logs->create([
-            'usuario_id' => (int)$_SESSION['user']['id'],
+            'usuario_id' => $employeeId,
             'acao' => 'concluir',
             'entidade' => 'demandas',
             'entidade_id' => $demandId,
-            'descricao' => 'Funcionário concluiu demanda',
+            'descricao' => 'Funcionário concluiu demanda ' . $ownedDemand['emenda'],
             'ip' => client_ip(),
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
         ]);
@@ -85,6 +105,7 @@ class EmployeeController extends Controller
     public function readNotification(): void
     {
         $this->requireAuth('funcionario');
+
         if (!verify_csrf($_POST['_csrf'] ?? null)) {
             flash('error', 'Falha de segurança na requisição.');
             redirect('funcionario/notificacoes');
@@ -101,6 +122,7 @@ class EmployeeController extends Controller
         $this->requireAuth('funcionario');
         $userId = (int)$_SESSION['user']['id'];
         $list = $this->notifications->forUser($userId);
+
         $this->view('funcionario/notificacoes/index', ['notifications' => $list]);
     }
 }

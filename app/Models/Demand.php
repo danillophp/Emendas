@@ -67,6 +67,22 @@ class Demand
     }
 
     /**
+     * Busca uma demanda específica pertencente ao funcionário.
+     * Usado para impedir acesso indevido por manipulação de ID.
+     */
+    public function findOwnedById(int $id, int $employeeId): ?array
+    {
+        $sql = 'SELECT * FROM demandas WHERE id = :id AND funcionario_id = :funcionario_id LIMIT 1';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute([
+            'id' => $id,
+            'funcionario_id' => $employeeId,
+        ]);
+
+        return $stmt->fetch() ?: null;
+    }
+
+    /**
      * Funcionário só pode concluir suas próprias demandas.
      */
     public function markCompleted(int $id, int $employeeId, string $completionNote): bool
@@ -81,7 +97,6 @@ class Demand
             'obs' => $completionNote,
         ]);
     }
-
 
     /**
      * Regra automática de vencimento:
