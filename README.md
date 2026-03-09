@@ -149,5 +149,9 @@ Tabelas:
 4. Verifique `.htaccess` com `RewriteBase /emendas/`.
 5. Acesse `https://www.prefsade.com.br/emendas`.
 
+
+## Entrega consolidada por etapas
+- Consulte `ENTREGA_ETAPAS.md` para o mapa completo da solução em 10 etapas (arquitetura, banco, autenticação, painéis, notificações/prazos, layout, auditoria e deploy).
+
 ## Checklist de deploy
 Consulte `DEPLOY_HOSTGATOR.md`.
