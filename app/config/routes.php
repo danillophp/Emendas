@@ -17,6 +17,7 @@ $router->get('/master/dashboard', [MasterController::class, 'dashboard']);
 $router->get('/master/employees', [MasterController::class, 'employees']);
 $router->post('/master/employees/create', [MasterController::class, 'createEmployee']);
 $router->post('/master/employees/update', [MasterController::class, 'updateEmployee']);
+$router->post('/master/employees/password', [MasterController::class, 'changeEmployeePassword']);
 $router->post('/master/employees/toggle', [MasterController::class, 'toggleEmployee']);
 $router->post('/master/employees/delete', [MasterController::class, 'deleteEmployee']);
 $router->get('/master/demands', [MasterController::class, 'demands']);

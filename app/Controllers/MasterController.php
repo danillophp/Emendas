@@ -82,6 +82,7 @@ class MasterController extends Controller
             redirect('master/employees');
         }
 
+        // Regra do negócio: usuário = decreto | senha inicial = data de nascimento (sem separadores).
         $this->users->createEmployee([
             'nome_completo' => $data['nome_completo'],
             'email' => $data['email'],
@@ -122,12 +123,30 @@ class MasterController extends Controller
         }
 
         $this->users->updateEmployee($id, $data);
-        if (!empty($_POST['new_password'])) {
-            $this->users->updatePassword($id, password_hash($_POST['new_password'], PASSWORD_DEFAULT), false);
-        }
-
         $this->logAction('update', 'usuarios', $id, 'Dados do funcionário atualizados pelo Master');
         flash('success', 'Funcionário atualizado com sucesso.');
+        redirect('master/employees');
+    }
+
+    public function changeEmployeePassword(): void
+    {
+        $this->requireAuth('master');
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Falha de segurança na requisição.');
+            redirect('master/employees');
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        $newPassword = (string)($_POST['new_password'] ?? '');
+
+        if ($id <= 0 || strlen($newPassword) < 8) {
+            flash('error', 'Informe uma nova senha com no mínimo 8 caracteres.');
+            redirect('master/employees');
+        }
+
+        $this->users->updatePassword($id, password_hash($newPassword, PASSWORD_DEFAULT), true);
+        $this->logAction('update_password', 'usuarios', $id, 'Master alterou senha de funcionário e reativou primeiro login');
+        flash('success', 'Senha do funcionário alterada com sucesso.');
         redirect('master/employees');
     }
 
@@ -144,6 +163,27 @@ class MasterController extends Controller
         $this->users->toggleEmployeeStatus($id, $active);
         $this->logAction('toggle', 'usuarios', $id, $active ? 'Funcionário ativado' : 'Funcionário desativado');
         flash('success', $active ? 'Funcionário ativado.' : 'Funcionário desativado.');
+        redirect('master/employees');
+    }
+
+    public function deleteEmployee(): void
+    {
+        $this->requireAuth('master');
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Falha de segurança na requisição.');
+            redirect('master/employees');
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            flash('error', 'Funcionário inválido.');
+            redirect('master/employees');
+        }
+
+        // Segurança operacional: não remove fisicamente para preservar histórico.
+        $this->users->toggleEmployeeStatus($id, false);
+        $this->logAction('soft_delete', 'usuarios', $id, 'Funcionário desativado por ação de exclusão lógica');
+        flash('success', 'Funcionário desativado com sucesso.');
         redirect('master/employees');
     }
 
@@ -181,13 +221,19 @@ class MasterController extends Controller
             redirect('master/demands');
         }
 
+        $prazoEntrega = trim((string)($_POST['prazo_entrega'] ?? ''));
+        if ($prazoEntrega === '') {
+            flash('error', 'Informe o prazo de entrega da demanda.');
+            redirect('master/demands');
+        }
+
         $this->demands->create([
             'emenda' => trim($_POST['emenda'] ?? ''),
             'nome_politico' => trim($_POST['nome_politico'] ?? ''),
             'data_emenda' => $_POST['data_emenda'] ?? date('Y-m-d'),
             'tipo_emenda' => trim($_POST['tipo_emenda'] ?? ''),
             'observacao' => trim($_POST['observacao'] ?? ''),
-            'prazo_entrega' => ($_POST['prazo_entrega'] ?? date('Y-m-d H:i:s')) . ':00',
+            'prazo_entrega' => date('Y-m-d H:i:s', strtotime($prazoEntrega)),
             'funcionario_id' => (int)($_POST['funcionario_id'] ?? 0),
             'status' => $_POST['status'] ?? 'pendente',
             'criado_por' => (int)$_SESSION['user']['id'],
@@ -212,7 +258,7 @@ class MasterController extends Controller
             'data_emenda' => $_POST['data_emenda'] ?? date('Y-m-d'),
             'tipo_emenda' => trim($_POST['tipo_emenda'] ?? ''),
             'observacao' => trim($_POST['observacao'] ?? ''),
-            'prazo_entrega' => ($_POST['prazo_entrega'] ?? date('Y-m-d H:i:s')) . ':00',
+            'prazo_entrega' => date('Y-m-d H:i:s', strtotime((string)($_POST['prazo_entrega'] ?? date('Y-m-d H:i:s')))),
             'funcionario_id' => (int)($_POST['funcionario_id'] ?? 0),
             'status' => $_POST['status'] ?? 'pendente',
         ]);
@@ -295,5 +341,4 @@ class MasterController extends Controller
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
         ]);
     }
-
 }
