@@ -1,7 +1,7 @@
 -- =========================================================
 -- Sistema de Gestão de Emendas Governamentais
 -- Banco: santo821_emenda
--- Compatível com MySQL 8+ (HostGator / phpMyAdmin)
+-- Compatível com MySQL / phpMyAdmin (HostGator)
 -- =========================================================
 
 SET NAMES utf8mb4;
@@ -15,8 +15,9 @@ CREATE DATABASE IF NOT EXISTS `santo821_emenda`
 USE `santo821_emenda`;
 
 -- ---------------------------------------------------------
--- Reimportação segura
+-- Reimportação segura (ordem por dependência)
 -- ---------------------------------------------------------
+DROP TABLE IF EXISTS `redefinicao_senha`;
 DROP TABLE IF EXISTS `logs_sistema`;
 DROP TABLE IF EXISTS `notificacoes`;
 DROP TABLE IF EXISTS `demandas`;
@@ -38,15 +39,16 @@ CREATE TABLE `usuarios` (
   `perfil` ENUM('master','funcionario') NOT NULL,
   `primeiro_login` TINYINT(1) NOT NULL DEFAULT 1,
   `ativo` TINYINT(1) NOT NULL DEFAULT 1,
+  `ultimo_login` DATETIME NULL,
   `session_token` VARCHAR(128) NULL DEFAULT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_usuarios_email` (`email`),
-  UNIQUE KEY `uq_usuarios_numero_decreto` (`numero_decreto`),
   UNIQUE KEY `uq_usuarios_usuario` (`usuario`),
+  UNIQUE KEY `uq_usuarios_numero_decreto` (`numero_decreto`),
   KEY `idx_usuarios_perfil_ativo` (`perfil`, `ativo`),
-  KEY `idx_usuarios_created_at` (`created_at`),
+  KEY `idx_usuarios_ultimo_login` (`ultimo_login`),
   KEY `idx_usuarios_session_token` (`session_token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -74,7 +76,6 @@ CREATE TABLE `demandas` (
   KEY `idx_demandas_funcionario_id` (`funcionario_id`),
   KEY `idx_demandas_criado_por` (`criado_por`),
   KEY `idx_demandas_status_prazo` (`status`, `prazo_entrega`),
-  KEY `idx_demandas_data_emenda` (`data_emenda`),
   CONSTRAINT `fk_demandas_funcionario`
     FOREIGN KEY (`funcionario_id`) REFERENCES `usuarios` (`id`)
     ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -93,11 +94,13 @@ CREATE TABLE `notificacoes` (
   `mensagem` VARCHAR(255) NOT NULL,
   `tipo` VARCHAR(50) NOT NULL,
   `referencia_id` BIGINT UNSIGNED NULL,
+  `referencia_tabela` VARCHAR(80) NULL,
   `lida` TINYINT(1) NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_notificacoes_usuario_lida` (`usuario_id`, `lida`),
-  KEY `idx_notificacoes_tipo_referencia` (`tipo`, `referencia_id`),
+  KEY `idx_notificacoes_tipo` (`tipo`),
+  KEY `idx_notificacoes_referencia` (`referencia_tabela`, `referencia_id`),
   KEY `idx_notificacoes_created_at` (`created_at`),
   CONSTRAINT `fk_notificacoes_usuario`
     FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
@@ -127,12 +130,41 @@ CREATE TABLE `logs_sistema` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
--- Usuário MASTER padrão
+-- 5) Tabela: redefinicao_senha
+-- ---------------------------------------------------------
+CREATE TABLE `redefinicao_senha` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT UNSIGNED NOT NULL,
+  `token` VARCHAR(128) NOT NULL,
+  `expira_em` DATETIME NOT NULL,
+  `usado` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_redefinicao_token` (`token`),
+  KEY `idx_redefinicao_usuario_id` (`usuario_id`),
+  KEY `idx_redefinicao_expira_em` (`expira_em`),
+  CONSTRAINT `fk_redefinicao_usuario`
+    FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- Usuário MASTER inicial
 -- senha (hash bcrypt de exemplo): Master@123
 -- ---------------------------------------------------------
 INSERT INTO `usuarios` (
-  `nome_completo`, `email`, `endereco`, `whatsapp`, `numero_decreto`,
-  `data_nascimento`, `usuario`, `senha_hash`, `perfil`, `primeiro_login`, `ativo`
+  `nome_completo`,
+  `email`,
+  `endereco`,
+  `whatsapp`,
+  `numero_decreto`,
+  `data_nascimento`,
+  `usuario`,
+  `senha_hash`,
+  `perfil`,
+  `primeiro_login`,
+  `ativo`,
+  `ultimo_login`
 ) VALUES (
   'Administrador Master',
   'master@emendas.local',
@@ -144,11 +176,13 @@ INSERT INTO `usuarios` (
   '$2y$10$2oUApvafnV5fGecK4fX3Z.2UNx9lKk2fuRu8etIRsEhM99f2m2vHW',
   'master',
   0,
-  1
+  1,
+  NOW()
 )
 ON DUPLICATE KEY UPDATE
   `nome_completo` = VALUES(`nome_completo`),
   `usuario` = VALUES(`usuario`),
-  `ativo` = VALUES(`ativo`);
+  `ativo` = VALUES(`ativo`),
+  `primeiro_login` = VALUES(`primeiro_login`);
 
 SET FOREIGN_KEY_CHECKS = 1;
