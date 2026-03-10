@@ -8,6 +8,7 @@ use App\Models\Notification;
 use App\Models\SystemLog;
 use App\Models\User;
 use App\Services\NotificationDeadlineService;
+use App\Services\SecureAttachmentService;
 
 class MasterController extends Controller
 {
@@ -16,7 +17,8 @@ class MasterController extends Controller
         private readonly Demand $demands = new Demand(),
         private readonly Notification $notifications = new Notification(),
         private readonly SystemLog $logs = new SystemLog(),
-        private readonly NotificationDeadlineService $deadlineService = new NotificationDeadlineService()
+        private readonly NotificationDeadlineService $deadlineService = new NotificationDeadlineService(),
+        private readonly SecureAttachmentService $attachmentService = new SecureAttachmentService()
     ) {
     }
 
@@ -74,7 +76,11 @@ class MasterController extends Controller
         $payload = $this->validateDemandPayload();
         if (!$payload['ok']) { flash('error', implode(' ', $payload['errors'])); redirect('master/demands'); }
 
-        $demandId = $this->demands->create($payload['data'] + ['criado_por' => (int)$_SESSION['user']['id']]);
+        $dataToPersist = $payload['data'];
+        $uploadOriginalName = $dataToPersist['_upload_original_name'] ?? null;
+        unset($dataToPersist['_upload_original_name']);
+
+        $demandId = $this->demands->create($dataToPersist + ['criado_por' => (int)$_SESSION['user']['id']]);
         $demand = $this->demands->findById($demandId) ?? ($payload['data'] + ['id' => $demandId]);
 
         $masterId = (int)$_SESSION['user']['id'];
@@ -82,6 +88,9 @@ class MasterController extends Controller
         $this->deadlineService->notifyDemandAssignedToEmployee((int)$payload['data']['funcionario_id'], $demand);
 
         $this->logAction('create', 'demandas', $demandId, 'Demanda cadastrada pelo Master');
+        if (is_string($uploadOriginalName) && $uploadOriginalName !== '') {
+            $this->logAction('upload_anexo', 'demandas', $demandId, 'Upload do anexo: ' . $uploadOriginalName);
+        }
         flash('success', 'Demanda cadastrada com sucesso.');
         redirect('master/demands');
     }
@@ -93,11 +102,18 @@ class MasterController extends Controller
         $current = $this->demands->findById($id); if (!$current) { flash('error', 'Demanda não encontrada.'); redirect('master/demands'); }
         $payload = $this->validateDemandPayload($current['anexo_emenda'] ?? null);
         if (!$payload['ok']) { flash('error', implode(' ', $payload['errors'])); redirect('master/demands'); }
-        $this->demands->update($id, $payload['data']);
+        $dataToPersist = $payload['data'];
+        $uploadOriginalName = $dataToPersist['_upload_original_name'] ?? null;
+        unset($dataToPersist['_upload_original_name']);
+
+        $this->demands->update($id, $dataToPersist);
         $updated = $this->demands->findById($id) ?? ($payload['data'] + ['id' => $id]);
         $this->deadlineService->notifyDemandEventToMaster((int)$_SESSION['user']['id'], $updated, 'Demanda atualizada', 'Uma demanda foi atualizada no painel Master.', 'demanda_atualizada_master');
         $this->deadlineService->notifyDemandUpdatedToEmployee((int)$payload['data']['funcionario_id'], $updated);
         $this->logAction('update', 'demandas', $id, 'Demanda atualizada pelo Master');
+        if (is_string($uploadOriginalName) && $uploadOriginalName !== '') {
+            $this->logAction('upload_anexo', 'demandas', $id, 'Substituição de anexo: ' . $uploadOriginalName);
+        }
         flash('success', 'Demanda atualizada com sucesso.');
         redirect('master/demands');
     }
@@ -148,53 +164,15 @@ class MasterController extends Controller
         if ($prazoTimestamp === false) { $errors[] = 'Data prazo de resposta inválida.'; } else { $data['data_prazo_resposta'] = date('Y-m-d H:i:s', $prazoTimestamp); }
         if ($cadastroTimestamp === false) { $errors[] = 'Data de cadastro da emenda inválida.'; } else { $data['data_cadastro_emenda'] = date('Y-m-d', $cadastroTimestamp); }
 
-        $upload = $this->processAttachment($_FILES['anexo_emenda'] ?? null);
+        $upload = $this->attachmentService->store($_FILES['anexo_emenda'] ?? null);
         if (!$upload['ok']) {
             $errors = array_merge($errors, $upload['errors']);
         } elseif ($upload['path'] !== null) {
             $data['anexo_emenda'] = $upload['path'];
+            $data['_upload_original_name'] = $upload['original_name'];
         }
 
         return ['ok' => $errors === [], 'data' => $data, 'errors' => $errors];
-    }
-
-    private function processAttachment(?array $file): array
-    {
-        if ($file === null || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            return ['ok' => true, 'path' => null, 'errors' => []];
-        }
-        if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            return ['ok' => false, 'path' => null, 'errors' => ['Falha no upload do anexo.']];
-        }
-        $maxSize = 5 * 1024 * 1024;
-        if (($file['size'] ?? 0) > $maxSize) {
-            return ['ok' => false, 'path' => null, 'errors' => ['Anexo excede 5MB.']];
-        }
-
-        $extension = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
-        $allowed = ['pdf' => 'application/pdf', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        if (!isset($allowed[$extension])) {
-            return ['ok' => false, 'path' => null, 'errors' => ['Apenas PDF e DOCX são permitidos.']];
-        }
-
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = (string)$finfo->file((string)($file['tmp_name'] ?? ''));
-        if (!in_array($mime, $allowed, true)) {
-            return ['ok' => false, 'path' => null, 'errors' => ['Arquivo inválido (MIME não permitido).']];
-        }
-
-        $uploadDir = BASE_PATH . '/storage/uploads/emendas';
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0750, true) && !is_dir($uploadDir)) {
-            return ['ok' => false, 'path' => null, 'errors' => ['Não foi possível preparar diretório de upload.']];
-        }
-
-        $safeName = 'emenda_' . date('YmdHis') . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
-        $destination = $uploadDir . '/' . $safeName;
-        if (!move_uploaded_file((string)$file['tmp_name'], $destination)) {
-            return ['ok' => false, 'path' => null, 'errors' => ['Falha ao salvar arquivo no servidor.']];
-        }
-
-        return ['ok' => true, 'path' => 'storage/uploads/emendas/' . $safeName, 'errors' => []];
     }
 
     private function jsonPollingResponse(): void

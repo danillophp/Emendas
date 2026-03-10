@@ -15,7 +15,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
         <td><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?> / <?= e($amendmentLabels[$demand['tipo_emenda']] ?? $demand['tipo_emenda']) ?></td>
         <td><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></td>
         <td><span class="badge bg-secondary"><?= e($statusLabels[$demand['status']] ?? $demand['status']) ?></span></td>
-        <td><?php if (!empty($demand['anexo_emenda'])): ?><a target="_blank" href="<?= url($demand['anexo_emenda']) ?>">Abrir</a><?php else: ?>-<?php endif; ?></td>
+        <td><?php if (!empty($demand['anexo_emenda'])): ?><a target="_blank" href="<?= url('anexos/demandas/download?demand_id=' . (int)$demand['id']) ?>">Abrir</a><?php else: ?>-<?php endif; ?></td>
         <td>
           <form method="post" action="<?= url('funcionario/demandas/status') ?>" class="d-flex gap-2">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">

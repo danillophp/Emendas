@@ -47,7 +47,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
   <td><?= e($demand['funcionario_nome']) ?></td>
   <td><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></td>
   <td><span class="badge bg-secondary"><?= e($statusLabels[$demand['status']] ?? $demand['status']) ?></span></td>
-  <td><?php if (!empty($demand['anexo_emenda'])): ?><a class="btn btn-sm btn-outline-dark" target="_blank" href="<?= url($demand['anexo_emenda']) ?>">Visualizar</a><?php else: ?><span class="text-muted">-</span><?php endif; ?></td>
+  <td><?php if (!empty($demand['anexo_emenda'])): ?><a class="btn btn-sm btn-outline-dark" target="_blank" href="<?= url('anexos/demandas/download?demand_id=' . (int)$demand['id']) ?>">Visualizar</a><?php else: ?><span class="text-muted">-</span><?php endif; ?></td>
   <td>
     <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editar<?= (int)$demand['id'] ?>">Editar</button>
     <form method="post" action="<?= url('master/demands/delete') ?>" class="d-inline" onsubmit="return confirm('Deseja remover esta demanda?');"><input type="hidden" name="_csrf" value="<?= csrf_token() ?>"><input type="hidden" name="id" value="<?= (int)$demand['id'] ?>"><button class="btn btn-sm btn-danger">Excluir</button></form>
@@ -65,7 +65,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
 <div class="col-md-4"><input class="form-control" type="date" name="data_cadastro_emenda" value="<?= e($demand['data_cadastro_emenda']) ?>" required></div>
 <div class="col-md-4"><input type="file" class="form-control" name="anexo_emenda" accept=".pdf,.docx"></div>
 <div class="col-md-12"><select class="form-select" name="funcionario_id" required><?php foreach ($employees as $employee): ?><option value="<?= (int)$employee['id'] ?>" <?= (int)$employee['id']===(int)$demand['funcionario_id']?'selected':'' ?>><?= e($employee['nome_completo']) ?></option><?php endforeach; ?></select></div>
-<?php if (!empty($demand['anexo_emenda'])): ?><div class="col-12"><a target="_blank" href="<?= url($demand['anexo_emenda']) ?>">Anexo atual</a></div><?php endif; ?>
+<?php if (!empty($demand['anexo_emenda'])): ?><div class="col-12"><a target="_blank" href="<?= url('anexos/demandas/download?demand_id=' . (int)$demand['id']) ?>">Anexo atual</a></div><?php endif; ?>
 <div class="col-12"><textarea class="form-control" name="observacao" rows="2"><?= e($demand['observacao'] ?? '') ?></textarea></div>
 </div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success">Salvar</button></div></form>
 </div></div></div>

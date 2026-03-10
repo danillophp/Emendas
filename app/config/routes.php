@@ -1,5 +1,6 @@
 <?php
 
+use App\Controllers\AttachmentController;
 use App\Controllers\AuthController;
 use App\Controllers\EmployeeController;
 use App\Controllers\FuncionarioController;
@@ -48,3 +49,6 @@ $router->post('/employee/notifications/read', [EmployeeController::class, 'readN
 // API de notificações (AJAX/polling) protegida por sessão
 $router->get('/api/notifications/poll', [NotificationController::class, 'poll']);
 $router->post('/api/notifications/read', [NotificationController::class, 'markReadAjax']);
+
+// Download seguro de anexos
+$router->get('/anexos/demandas/download', [AttachmentController::class, 'downloadDemandAttachment']);
