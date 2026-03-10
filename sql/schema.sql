@@ -10,21 +10,21 @@ SET SQL_MODE = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTIT
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ---------------------------------------------------------
--- Criação do banco
+-- Banco de dados (HostGator/cPanel)
 -- ---------------------------------------------------------
-CREATE DATABASE IF NOT EXISTS `santo821_emenda`
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
+-- IMPORTANTE:
+-- 1) O usuário MySQL deve ser criado e vinculado ao banco no cPanel.
+-- 2) Este script NÃO executa CREATE USER, DROP USER, GRANT ou FLUSH PRIVILEGES.
+-- 3) Em muitos planos compartilhados, CREATE DATABASE não é permitido via phpMyAdmin.
+-- 4) Ajuste o nome real do banco abaixo (normalmente com prefixo do cPanel),
+--    por exemplo: `cpaneluser_santo821_emenda`.
 
-USE `santo821_emenda`;
+-- Opcional (descomente apenas se seu usuário tiver permissão para criar banco):
+-- CREATE DATABASE IF NOT EXISTS `cpaneluser_santo821_emenda`
+--   CHARACTER SET utf8mb4
+--   COLLATE utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------
--- Criação do usuário de banco (quando permitido pelo host)
--- Em hospedagem compartilhada pode já existir via painel.
--- ---------------------------------------------------------
-CREATE USER IF NOT EXISTS 'santo821_emenda'@'localhost' IDENTIFIED BY 'php@3903.';
-GRANT ALL PRIVILEGES ON `santo821_emenda`.* TO 'santo821_emenda'@'localhost';
-FLUSH PRIVILEGES;
+USE `cpaneluser_santo821_emenda`;
 
 -- ---------------------------------------------------------
 -- Reimportação segura (ordem por dependência)
