@@ -6,6 +6,7 @@ use App\Controllers\EmployeeController;
 use App\Controllers\FuncionarioController;
 use App\Controllers\MasterController;
 use App\Controllers\NotificationController;
+use App\Controllers\PanelSyncController;
 
 $router->get('/', [AuthController::class, 'showLogin']);
 $router->get('/login', [AuthController::class, 'showLogin']);
@@ -52,3 +53,7 @@ $router->post('/api/notifications/read', [NotificationController::class, 'markRe
 
 // Download seguro de anexos
 $router->get('/anexos/demandas/download', [AttachmentController::class, 'downloadDemandAttachment']);
+
+// Sincronização parcial de painéis (polling seguro)
+$router->get('/api/master/sync', [PanelSyncController::class, 'master']);
+$router->get('/api/funcionario/sync', [PanelSyncController::class, 'employee']);

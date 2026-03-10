@@ -33,7 +33,7 @@
         ['label' => 'Notificações', 'icon' => 'bi-bell', 'path' => '/funcionario/notificacoes'],
       ];
 ?>
-<div class="app-shell" id="appShell" data-polling-url="<?= url('api/notifications/poll') ?>" data-notification-read-url="<?= url('api/notifications/read') ?>" data-notification-base-url="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>" data-notification-latest-id="<?= (int)($headerNotifications[0]['id'] ?? 0) ?>" data-csrf-token="<?= csrf_token() ?>">
+<div class="app-shell" id="appShell" data-polling-url="<?= url('api/notifications/poll') ?>" data-sync-url="<?= url($role === 'master' ? 'api/master/sync' : 'api/funcionario/sync') ?>" data-notification-read-url="<?= url('api/notifications/read') ?>" data-notification-base-url="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>" data-notification-latest-id="<?= (int)($headerNotifications[0]['id'] ?? 0) ?>" data-employee-status-url="<?= url('funcionario/demandas/status') ?>" data-csrf-token="<?= csrf_token() ?>">
   <aside class="sidebar" id="sidebarNav">
     <a class="brand" href="<?= url($role === 'master' ? 'master/dashboard' : 'funcionario/dashboard') ?>">
       <i class="bi bi-building"></i> Emendas Gov
@@ -73,7 +73,7 @@
             <div class="p-3 border-bottom">
               <strong>Notificações</strong>
             </div>
-            <div class="notification-list">
+            <div class="notification-list" id="headerNotificationList">
               <?php if (!empty($headerNotifications)): ?>
                 <?php foreach ($headerNotifications as $headerNotification): ?>
                   <a class="dropdown-item py-2" href="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>">

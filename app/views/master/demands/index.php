@@ -40,7 +40,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
 <div class="table-responsive">
 <table class="table table-hover table-modern align-middle data-table">
 <thead><tr><th>Demanda</th><th>Responsável</th><th>Prazo</th><th>Status</th><th>Anexo</th><th>Ações</th></tr></thead>
-<tbody>
+<tbody id="masterDemandsBody">
 <?php foreach ($demands as $demand): ?>
 <tr>
   <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?> • <?= e($amendmentLabels[$demand['tipo_emenda']] ?? $demand['tipo_emenda']) ?></small></td>

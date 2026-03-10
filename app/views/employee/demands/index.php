@@ -8,7 +8,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
 <div class="table-responsive">
   <table class="table table-striped table-modern align-middle data-table" id="employeeDemandsTable">
     <thead><tr><th>Emenda</th><th>Tipo</th><th>Prazo</th><th>Status</th><th>Anexo</th><th>Ação</th></tr></thead>
-    <tbody>
+    <tbody id="employeeDemandsBody">
       <?php foreach ($demands as $demand): ?>
       <tr>
         <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e($demand['nome_politico']) ?></small></td>
