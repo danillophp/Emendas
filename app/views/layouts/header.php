@@ -33,7 +33,7 @@
         ['label' => 'Notificações', 'icon' => 'bi-bell', 'path' => '/funcionario/notificacoes'],
       ];
 ?>
-<div class="app-shell" id="appShell" data-polling-url="<?= url($role === 'master' ? 'master/polling' : 'funcionario/polling') ?>" data-notification-base-url="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>" data-notification-latest-id="<?= (int)($headerNotifications[0]['id'] ?? 0) ?>">
+<div class="app-shell" id="appShell" data-polling-url="<?= url('api/notifications/poll') ?>" data-notification-read-url="<?= url('api/notifications/read') ?>" data-notification-base-url="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>" data-notification-latest-id="<?= (int)($headerNotifications[0]['id'] ?? 0) ?>" data-csrf-token="<?= csrf_token() ?>">
   <aside class="sidebar" id="sidebarNav">
     <a class="brand" href="<?= url($role === 'master' ? 'master/dashboard' : 'funcionario/dashboard') ?>">
       <i class="bi bi-building"></i> Emendas Gov

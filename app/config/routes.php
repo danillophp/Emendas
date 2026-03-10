@@ -4,6 +4,7 @@ use App\Controllers\AuthController;
 use App\Controllers\EmployeeController;
 use App\Controllers\FuncionarioController;
 use App\Controllers\MasterController;
+use App\Controllers\NotificationController;
 
 $router->get('/', [AuthController::class, 'showLogin']);
 $router->get('/login', [AuthController::class, 'showLogin']);
@@ -43,7 +44,7 @@ $router->post('/employee/demands/status', [EmployeeController::class, 'updateSta
 $router->get('/employee/notifications', [EmployeeController::class, 'notifications']);
 $router->post('/employee/notifications/read', [EmployeeController::class, 'readNotification']);
 
-// Polling AJAX protegido por sessão
-$router->get('/master/polling', [MasterController::class, 'polling']);
-$router->get('/funcionario/polling', [FuncionarioController::class, 'polling']);
-$router->get('/employee/polling', [EmployeeController::class, 'polling']);
+
+// API de notificações (AJAX/polling) protegida por sessão
+$router->get('/api/notifications/poll', [NotificationController::class, 'poll']);
+$router->post('/api/notifications/read', [NotificationController::class, 'markReadAjax']);
