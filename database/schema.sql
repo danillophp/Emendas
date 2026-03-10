@@ -75,23 +75,24 @@ CREATE TABLE `demandas` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `emenda` VARCHAR(180) NOT NULL,
   `nome_politico` VARCHAR(150) NOT NULL,
-  `data_emenda` DATE NOT NULL,
-  `tipo_emenda` VARCHAR(100) NOT NULL,
+  `tipo_processo` ENUM('prestacao_de_conta','cadastro_de_emenda') NOT NULL,
+  `tipo_emenda` ENUM('parlamentar','estadual','municipal') NOT NULL,
+  `data_prazo_resposta` DATETIME NOT NULL,
+  `data_cadastro_emenda` DATE NOT NULL,
   `observacao` TEXT NULL,
-  `prazo_entrega` DATETIME NOT NULL,
+  `anexo_emenda` VARCHAR(255) NULL,
   `funcionario_id` INT UNSIGNED NOT NULL,
-  `status` ENUM('pendente','em_andamento','concluida','atrasada') NOT NULL DEFAULT 'pendente',
+  `status` ENUM('pendente','cadastrado') NOT NULL DEFAULT 'pendente',
   `criado_por` INT UNSIGNED NOT NULL,
-  `data_conclusao` DATETIME NULL,
-  `observacao_conclusao` TEXT NULL,
+  `data_ultima_atualizacao` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_demandas_status` (`status`),
-  KEY `idx_demandas_prazo_entrega` (`prazo_entrega`),
+  KEY `idx_demandas_prazo_resposta` (`data_prazo_resposta`),
   KEY `idx_demandas_funcionario_id` (`funcionario_id`),
   KEY `idx_demandas_criado_por` (`criado_por`),
-  KEY `idx_demandas_status_prazo` (`status`, `prazo_entrega`),
+  KEY `idx_demandas_status_prazo` (`status`, `data_prazo_resposta`),
   CONSTRAINT `fk_demandas_funcionario`
     FOREIGN KEY (`funcionario_id`) REFERENCES `usuarios` (`id`)
     ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -195,7 +196,7 @@ BEGIN
     'UPDATE',
     'demandas',
     NEW.id,
-    CONCAT('Demanda atualizada. Status de ', OLD.status, ' para ', NEW.status)
+    CONCAT('Demanda atualizada. Status de ', OLD.status, ' para ', NEW.status, '. Última atualização em ', NEW.data_ultima_atualizacao)
   );
 END$$
 

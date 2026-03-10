@@ -71,6 +71,26 @@ class Notification
         return $stmt->fetchAll();
     }
 
+
+    public function latestForUser(int $userId, int $afterId = 0, int $limit = 10): array
+    {
+        $sql = 'SELECT * FROM notificacoes WHERE usuario_id = :usuario_id AND id > :after_id ORDER BY id ASC LIMIT :limite';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->bindValue(':usuario_id', $userId, \PDO::PARAM_INT);
+        $stmt->bindValue(':after_id', $afterId, \PDO::PARAM_INT);
+        $stmt->bindValue(':limite', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function latestIdForUser(int $userId): int
+    {
+        $stmt = Database::connection()->prepare('SELECT MAX(id) AS max_id FROM notificacoes WHERE usuario_id = :usuario_id');
+        $stmt->execute(['usuario_id' => $userId]);
+        $row = $stmt->fetch();
+        return (int)($row['max_id'] ?? 0);
+    }
+
     public function unreadCount(int $userId): int
     {
         $stmt = Database::connection()->prepare('SELECT COUNT(*) AS total FROM notificacoes WHERE usuario_id = :usuario_id AND lida = 0');

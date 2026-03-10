@@ -31,6 +31,7 @@ $router->post('/master/notifications/read', [MasterController::class, 'readNotif
 $router->get('/funcionario/dashboard', [FuncionarioController::class, 'dashboard']);
 $router->get('/funcionario/demandas', [FuncionarioController::class, 'demands']);
 $router->post('/funcionario/demandas/concluir', [FuncionarioController::class, 'completeDemand']);
+$router->post('/funcionario/demandas/status', [FuncionarioController::class, 'updateStatus']);
 $router->get('/funcionario/notificacoes', [FuncionarioController::class, 'notifications']);
 $router->post('/funcionario/notificacoes/lida', [FuncionarioController::class, 'readNotification']);
 
@@ -38,5 +39,11 @@ $router->post('/funcionario/notificacoes/lida', [FuncionarioController::class, '
 $router->get('/employee/dashboard', [EmployeeController::class, 'dashboard']);
 $router->get('/employee/demands', [EmployeeController::class, 'demands']);
 $router->post('/employee/demands/complete', [EmployeeController::class, 'completeDemand']);
+$router->post('/employee/demands/status', [EmployeeController::class, 'updateStatus']);
 $router->get('/employee/notifications', [EmployeeController::class, 'notifications']);
 $router->post('/employee/notifications/read', [EmployeeController::class, 'readNotification']);
+
+// Polling AJAX protegido por sessão
+$router->get('/master/polling', [MasterController::class, 'polling']);
+$router->get('/funcionario/polling', [FuncionarioController::class, 'polling']);
+$router->get('/employee/polling', [EmployeeController::class, 'polling']);

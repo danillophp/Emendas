@@ -33,7 +33,7 @@
         ['label' => 'Notificações', 'icon' => 'bi-bell', 'path' => '/funcionario/notificacoes'],
       ];
 ?>
-<div class="app-shell" id="appShell">
+<div class="app-shell" id="appShell" data-polling-url="<?= url($role === 'master' ? 'master/polling' : 'funcionario/polling') ?>" data-notification-base-url="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>" data-notification-latest-id="<?= (int)($headerNotifications[0]['id'] ?? 0) ?>">
   <aside class="sidebar" id="sidebarNav">
     <a class="brand" href="<?= url($role === 'master' ? 'master/dashboard' : 'funcionario/dashboard') ?>">
       <i class="bi bi-building"></i> Emendas Gov
@@ -66,7 +66,7 @@
           <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="bi bi-bell"></i>
             <?php if ((int)$headerUnreadCount > 0): ?>
-              <span class="badge rounded-pill bg-warning text-dark position-absolute top-0 start-100 translate-middle"><?= (int)$headerUnreadCount ?></span>
+              <span id="headerUnreadBadge" class="badge rounded-pill bg-warning text-dark position-absolute top-0 start-100 translate-middle"><?= (int)$headerUnreadCount ?></span>
             <?php endif; ?>
           </button>
           <div class="dropdown-menu dropdown-menu-end p-0 shadow notification-menu">
@@ -102,3 +102,5 @@
 <?php endif; ?>
 <?php if ($error = flash('error')): ?><div class="alert alert-danger shadow-sm border-0"><?= e($error) ?></div><?php endif; ?>
 <?php if ($success = flash('success')): ?><div class="alert alert-success shadow-sm border-0"><?= e($success) ?></div><?php endif; ?>
+
+<div id="toastArea" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1080"></div>

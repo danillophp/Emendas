@@ -24,93 +24,83 @@ class EmployeeController extends Controller
     {
         $this->requireAuth('funcionario');
         $employeeId = (int)$_SESSION['user']['id'];
-
-        // Mantém status atrasado sincronizado em toda navegação do funcionário.
-        $this->demands->refreshOverdueStatuses();
-
-        $this->view('funcionario/dashboard/index', [
-            'summary' => $this->demands->employeeSummary($employeeId),
-        ]);
+        $this->view('funcionario/dashboard/index', ['summary' => $this->demands->employeeSummary($employeeId)]);
     }
 
     public function demands(): void
     {
         $this->requireAuth('funcionario');
-        $this->demands->refreshOverdueStatuses();
-
-        // Regra crítica: funcionário só recebe demandas do próprio usuário.
         $employeeId = (int)$_SESSION['user']['id'];
-        $list = $this->demands->byEmployee($employeeId);
-
-        $this->view('funcionario/demandas/index', [
-            'demands' => $list,
-        ]);
+        $this->view('funcionario/demandas/index', ['demands' => $this->demands->byEmployee($employeeId)]);
     }
 
     public function completeDemand(): void
     {
-        $this->requireAuth('funcionario');
+        $this->updateStatus();
+    }
 
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
-            redirect('funcionario/demandas');
-        }
+    public function updateStatus(): void
+    {
+        $this->requireAuth('funcionario');
+        if (!verify_csrf($_POST['_csrf'] ?? null)) { flash('error', 'Falha de segurança na requisição.'); redirect('funcionario/demandas'); }
 
         $employeeId = (int)$_SESSION['user']['id'];
         $demandId = (int)($_POST['id'] ?? 0);
-        $note = trim((string)($_POST['completion_note'] ?? ''));
+        $status = trim((string)($_POST['status'] ?? ''));
 
-        if ($demandId <= 0) {
-            flash('error', 'Demanda inválida para conclusão.');
+        if ($demandId <= 0 || !in_array($status, Demand::STATUS_ALLOWED, true)) {
+            flash('error', 'Dados inválidos para atualização de status.');
             redirect('funcionario/demandas');
         }
 
         $ownedDemand = $this->demands->findOwnedById($demandId, $employeeId);
-        if (!$ownedDemand) {
-            flash('error', 'Você não tem permissão para concluir esta demanda.');
+        if (!$ownedDemand) { flash('error', 'Você não tem permissão para alterar esta demanda.'); redirect('funcionario/demandas'); }
+
+        if (!$this->demands->updateStatusByEmployee($demandId, $employeeId, $status)) {
+            flash('error', 'Não foi possível atualizar o status.');
             redirect('funcionario/demandas');
         }
 
-        $done = $this->demands->markCompleted($demandId, $employeeId, $note);
-        if (!$done) {
-            flash('error', 'Não foi possível concluir esta demanda.');
-            redirect('funcionario/demandas');
-        }
-
-        // Notifica automaticamente o Master sobre conclusão com referência da demanda.
         $masterId = $this->users->findActiveMasterId();
         if ($masterId !== null) {
-            $this->deadlineService->notifyDemandCompletedForMaster(
+            $this->deadlineService->notifyDemandEventToMaster(
                 $masterId,
-                $ownedDemand,
-                (string)($_SESSION['user']['name'] ?? 'Funcionário')
+                ['id' => $demandId],
+                'Status atualizado pelo funcionário',
+                sprintf('%s atualizou a demanda "%s" para o status %s.', (string)($_SESSION['user']['name'] ?? 'Funcionário'), $ownedDemand['emenda'] ?? '', $status),
+                'status_funcionario'
             );
         }
 
-        // Auditoria da conclusão para rastreabilidade operacional.
         $this->logs->create([
             'usuario_id' => $employeeId,
-            'acao' => 'concluir',
+            'acao' => 'update_status',
             'entidade' => 'demandas',
             'entidade_id' => $demandId,
-            'descricao' => 'Funcionário concluiu demanda ' . $ownedDemand['emenda'],
+            'descricao' => 'Funcionário alterou status para ' . $status,
             'ip' => client_ip(),
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
         ]);
 
-        flash('success', 'Demanda concluída com sucesso.');
+        flash('success', 'Status atualizado com sucesso.');
         redirect('funcionario/demandas');
+    }
+
+    public function polling(): void
+    {
+        $this->requireAuth('funcionario');
+        header('Content-Type: application/json; charset=utf-8');
+        $userId = (int)$_SESSION['user']['id'];
+        $afterId = max(0, (int)($_GET['after_id'] ?? 0));
+        $items = $this->notifications->latestForUser($userId, $afterId, 20);
+        echo json_encode(['ok'=>true,'unread_count'=>$this->notifications->unreadCount($userId),'items'=>$items,'latest_id'=>$this->notifications->latestIdForUser($userId)]);
+        exit;
     }
 
     public function readNotification(): void
     {
         $this->requireAuth('funcionario');
-
-        if (!verify_csrf($_POST['_csrf'] ?? null)) {
-            flash('error', 'Falha de segurança na requisição.');
-            redirect('funcionario/notificacoes');
-        }
-
+        if (!verify_csrf($_POST['_csrf'] ?? null)) { flash('error', 'Falha de segurança na requisição.'); redirect('funcionario/notificacoes'); }
         $notificationId = (int)($_POST['id'] ?? 0);
         $this->notifications->markRead($notificationId, (int)$_SESSION['user']['id']);
         flash('success', 'Notificação marcada como lida.');
@@ -121,8 +111,6 @@ class EmployeeController extends Controller
     {
         $this->requireAuth('funcionario');
         $userId = (int)$_SESSION['user']['id'];
-        $list = $this->notifications->forUser($userId);
-
-        $this->view('funcionario/notificacoes/index', ['notifications' => $list]);
+        $this->view('funcionario/notificacoes/index', ['notifications' => $this->notifications->forUser($userId)]);
     }
 }

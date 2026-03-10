@@ -4,48 +4,13 @@
 </div>
 
 <div class="row g-3">
-  <div class="col-md-6 col-xl">
-    <div class="card card-ui kpi p-3">
-      <div class="d-flex justify-content-between">
-        <div><small>Total recebidas</small><h4><?= (int)$summary['total'] ?></h4></div>
-        <div class="icon icon-preto"><i class="bi bi-collection"></i></div>
-      </div>
-    </div>
+  <div class="col-md-4">
+    <div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Total recebidas</small><h4><?= (int)$summary['total'] ?></h4></div><div class="icon icon-preto"><i class="bi bi-collection"></i></div></div></div>
   </div>
-  <div class="col-md-6 col-xl">
-    <div class="card card-ui kpi p-3">
-      <div class="d-flex justify-content-between">
-        <div><small>Pendentes</small><h4><?= (int)$summary['pendente'] ?></h4></div>
-        <div class="icon icon-azul"><i class="bi bi-hourglass-split"></i></div>
-      </div>
-    </div>
+  <div class="col-md-4">
+    <div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Pendentes</small><h4><?= (int)$summary['pendente'] ?></h4></div><div class="icon icon-azul"><i class="bi bi-hourglass-split"></i></div></div></div>
   </div>
-  <div class="col-md-6 col-xl">
-    <div class="card card-ui kpi p-3">
-      <div class="d-flex justify-content-between">
-        <div><small>Em andamento</small><h4><?= (int)$summary['em_andamento'] ?></h4></div>
-        <div class="icon icon-azul"><i class="bi bi-activity"></i></div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-xl">
-    <div class="card card-ui kpi p-3">
-      <div class="d-flex justify-content-between">
-        <div><small>Concluídas</small><h4><?= (int)$summary['concluida'] ?></h4></div>
-        <div class="icon icon-verde"><i class="bi bi-check-circle"></i></div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-xl">
-    <div class="card card-ui kpi p-3">
-      <div class="d-flex justify-content-between">
-        <div><small>Próximas do prazo</small><h4><?= (int)$summary['proximas_prazo'] ?></h4></div>
-        <div class="icon icon-preto"><i class="bi bi-alarm"></i></div>
-      </div>
-    </div>
+  <div class="col-md-4">
+    <div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Cadastradas</small><h4><?= (int)$summary['cadastrado'] ?></h4></div><div class="icon icon-verde"><i class="bi bi-check-circle"></i></div></div></div>
   </div>
 </div>
-
-<?php if ((int)$summary['proximas_prazo'] > 0): ?>
-  <div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle"></i> Você possui demandas com prazo em até 24h.</div>
-<?php endif; ?>

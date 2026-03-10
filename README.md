@@ -84,26 +84,19 @@ Regras de credencial inicial:
 ## Regras de demanda
 Status suportados:
 - `pendente`
-- `em_andamento`
-- `concluida`
-- `atrasada`
+- `cadastrado`
 
 Fluxo:
 1. Master cria e atribui a demanda.
 2. Funcionário visualiza no painel.
-3. Funcionário conclui com observação.
-4. Sistema grava data/hora de conclusão.
-5. Sistema notifica o Master.
-6. Sistema alerta Master quando faltar <=24h.
-7. Sistema marca automaticamente `atrasada` quando expirar prazo sem conclusão.
+3. Funcionário atualiza o status entre `pendente` e `cadastrado`.
+4. Sistema registra atualização e notifica o Master.
+5. Sistema alerta Master quando faltar <=24h para o prazo de resposta.
 
 
 ## Módulo de notificações e controle de prazo
-- Conclusão de demanda pelo funcionário grava `data_conclusao` e `observacao_conclusao` e envia notificação para o Master com referência da demanda.
-- Automação de prazo roda em pontos estratégicos dos painéis (Master e Funcionário):
-  - marca demandas vencidas como `atrasada`;
-  - gera alerta de 24h para o Master em demandas não concluídas;
-  - evita duplicação excessiva com janela de verificação por tipo/referência.
+- Alteração de status de demanda (Master/Funcionário) gera notificação interna com referência da demanda.
+- Automação de prazo roda em pontos estratégicos do painel Master para gerar alerta de 24h ao responsável administrativo, com prevenção de duplicidade por janela de verificação.
 - Área de notificações lista itens mais recentes, exibe contador de não lidas e permite marcar como lida.
 - Implementação centralizada em serviço reutilizável: `app/Services/NotificationDeadlineService.php`.
 
@@ -135,6 +128,7 @@ Parâmetros de produção já definidos:
 Scripts de importação:
 - `database/schema.sql` (principal)
 - `sql/schema.sql` (espelho)
+- SQL incremental: `database/update_2026_03_demandas_notificacoes.sql`
 
 Tabelas:
 - `usuarios`

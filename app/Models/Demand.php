@@ -6,6 +6,10 @@ use App\Core\Database;
 
 class Demand
 {
+    public const STATUS_ALLOWED = ['pendente', 'cadastrado'];
+    public const PROCESS_TYPES = ['prestacao_de_conta', 'cadastro_de_emenda'];
+    public const AMENDMENT_TYPES = ['parlamentar', 'estadual', 'municipal'];
+
     public function countFiltered(array $filters = []): int
     {
         [$where, $params] = $this->buildFilters($filters);
@@ -23,7 +27,7 @@ class Demand
                 FROM demandas d
                 JOIN usuarios u ON u.id = d.funcionario_id
                 ' . $where . '
-                ORDER BY d.prazo_entrega ASC
+                ORDER BY d.data_prazo_resposta ASC
                 LIMIT :limit OFFSET :offset';
 
         $stmt = Database::connection()->prepare($sql);
@@ -36,17 +40,31 @@ class Demand
         return $stmt->fetchAll();
     }
 
-    public function create(array $data): bool
+    public function create(array $data): int
     {
-        $sql = 'INSERT INTO demandas (emenda, nome_politico, data_emenda, tipo_emenda, observacao, prazo_entrega, funcionario_id, status, criado_por)
-                VALUES (:emenda, :nome_politico, :data_emenda, :tipo_emenda, :observacao, :prazo_entrega, :funcionario_id, :status, :criado_por)';
-        return Database::connection()->prepare($sql)->execute($data);
+        $sql = 'INSERT INTO demandas (emenda, nome_politico, tipo_processo, tipo_emenda, data_prazo_resposta, data_cadastro_emenda,
+                    observacao, anexo_emenda, funcionario_id, status, criado_por, data_ultima_atualizacao)
+                VALUES (:emenda, :nome_politico, :tipo_processo, :tipo_emenda, :data_prazo_resposta, :data_cadastro_emenda,
+                    :observacao, :anexo_emenda, :funcionario_id, :status, :criado_por, NOW())';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($data);
+        return (int)Database::connection()->lastInsertId();
     }
 
     public function update(int $id, array $data): bool
     {
-        $sql = 'UPDATE demandas SET emenda = :emenda, nome_politico = :nome_politico, data_emenda = :data_emenda, tipo_emenda = :tipo_emenda,
-                observacao = :observacao, prazo_entrega = :prazo_entrega, funcionario_id = :funcionario_id, status = :status
+        $sql = 'UPDATE demandas
+                SET emenda = :emenda,
+                    nome_politico = :nome_politico,
+                    tipo_processo = :tipo_processo,
+                    tipo_emenda = :tipo_emenda,
+                    data_prazo_resposta = :data_prazo_resposta,
+                    data_cadastro_emenda = :data_cadastro_emenda,
+                    observacao = :observacao,
+                    anexo_emenda = :anexo_emenda,
+                    funcionario_id = :funcionario_id,
+                    status = :status,
+                    data_ultima_atualizacao = NOW()
                 WHERE id = :id';
         return Database::connection()->prepare($sql)->execute(['id' => $id] + $data);
     }
@@ -56,20 +74,13 @@ class Demand
         return Database::connection()->prepare('DELETE FROM demandas WHERE id = :id')->execute(['id' => $id]);
     }
 
-    /**
-     * Retorna apenas demandas do funcionário logado.
-     */
     public function byEmployee(int $employeeId): array
     {
-        $stmt = Database::connection()->prepare('SELECT * FROM demandas WHERE funcionario_id = :id ORDER BY prazo_entrega ASC');
+        $stmt = Database::connection()->prepare('SELECT * FROM demandas WHERE funcionario_id = :id ORDER BY data_prazo_resposta ASC');
         $stmt->execute(['id' => $employeeId]);
         return $stmt->fetchAll();
     }
 
-    /**
-     * Busca uma demanda específica pertencente ao funcionário.
-     * Usado para impedir acesso indevido por manipulação de ID.
-     */
     public function findOwnedById(int $id, int $employeeId): ?array
     {
         $sql = 'SELECT * FROM demandas WHERE id = :id AND funcionario_id = :funcionario_id LIMIT 1';
@@ -82,34 +93,24 @@ class Demand
         return $stmt->fetch() ?: null;
     }
 
-    /**
-     * Funcionário só pode concluir suas próprias demandas.
-     */
-    public function markCompleted(int $id, int $employeeId, string $completionNote): bool
+    public function findById(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM demandas WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function updateStatusByEmployee(int $id, int $employeeId, string $status): bool
     {
         $sql = 'UPDATE demandas
-                SET status = "concluida", data_conclusao = NOW(), observacao_conclusao = :obs
-                WHERE id = :id AND funcionario_id = :funcionario_id AND status != "concluida"';
+                SET status = :status, data_ultima_atualizacao = NOW(), updated_at = NOW()
+                WHERE id = :id AND funcionario_id = :funcionario_id';
 
         return Database::connection()->prepare($sql)->execute([
             'id' => $id,
             'funcionario_id' => $employeeId,
-            'obs' => $completionNote,
+            'status' => $status,
         ]);
-    }
-
-    /**
-     * Regra automática de vencimento:
-     * toda demanda não concluída cujo prazo já expirou vira "atrasada".
-     */
-    public function refreshOverdueStatuses(): int
-    {
-        $sql = 'UPDATE demandas
-                SET status = "atrasada"
-                WHERE status != "concluida" AND prazo_entrega < NOW()';
-        $stmt = Database::connection()->prepare($sql);
-        $stmt->execute();
-        return $stmt->rowCount();
     }
 
     public function dueIn24Hours(): array
@@ -117,18 +118,17 @@ class Demand
         $sql = 'SELECT d.*, u.nome_completo AS funcionario_nome
                 FROM demandas d
                 JOIN usuarios u ON u.id = d.funcionario_id
-                WHERE d.status != "concluida" AND d.prazo_entrega BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 24 HOUR)
-                ORDER BY d.prazo_entrega ASC';
+                WHERE d.data_prazo_resposta BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 24 HOUR)
+                ORDER BY d.data_prazo_resposta ASC';
         return Database::connection()->query($sql)->fetchAll();
     }
 
     public function upcomingDeadlines(int $limit = 8): array
     {
-        $sql = 'SELECT d.id, d.emenda, d.prazo_entrega, d.status, u.nome_completo AS funcionario_nome
+        $sql = 'SELECT d.id, d.emenda, d.data_prazo_resposta, d.status, u.nome_completo AS funcionario_nome
                 FROM demandas d
                 JOIN usuarios u ON u.id = d.funcionario_id
-                WHERE d.status IN ("pendente", "em_andamento")
-                ORDER BY d.prazo_entrega ASC
+                ORDER BY d.data_prazo_resposta ASC
                 LIMIT :limit';
         $stmt = Database::connection()->prepare($sql);
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
@@ -144,57 +144,56 @@ class Demand
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        $stats = ['total' => 0, 'pendente' => 0, 'em_andamento' => 0, 'concluida' => 0, 'atrasada' => 0];
+        $stats = ['total' => 0, 'pendente' => 0, 'cadastrado' => 0];
         foreach ($rows as $row) {
             $stats['total'] += (int)$row['total'];
-            $stats[$row['status']] = (int)$row['total'];
+            if (isset($stats[$row['status']])) {
+                $stats[$row['status']] = (int)$row['total'];
+            }
         }
         return $stats;
     }
 
     public function employeeSummary(int $employeeId): array
     {
-        $stats = $this->stats($employeeId);
+        return $this->stats($employeeId);
+    }
 
-        $sql = 'SELECT COUNT(*) AS proximas
-                FROM demandas
-                WHERE funcionario_id = :funcionario_id
-                AND status != "concluida"
-                AND prazo_entrega BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 24 HOUR)';
+    public function recentlyUpdatedForEmployee(int $employeeId, string $since): array
+    {
+        $sql = 'SELECT * FROM demandas WHERE funcionario_id = :employee_id AND updated_at > :since ORDER BY updated_at DESC LIMIT 30';
         $stmt = Database::connection()->prepare($sql);
-        $stmt->execute(['funcionario_id' => $employeeId]);
-        $row = $stmt->fetch();
-        $stats['proximas_prazo'] = (int)($row['proximas'] ?? 0);
-
-        return $stats;
+        $stmt->execute(['employee_id' => $employeeId, 'since' => $since]);
+        return $stmt->fetchAll();
     }
 
     private function buildFilters(array $filters): array
     {
-        $where = [];
+        $clauses = [];
         $params = [];
 
-        if (!empty($filters['status'])) {
-            $where[] = 'd.status = :status';
+        if (!empty($filters['status']) && in_array($filters['status'], self::STATUS_ALLOWED, true)) {
+            $clauses[] = 'd.status = :status';
             $params['status'] = $filters['status'];
         }
 
-        if (!empty($filters['funcionario_id'])) {
-            $where[] = 'd.funcionario_id = :funcionario_id';
+        if (!empty($filters['funcionario_id']) && ctype_digit((string)$filters['funcionario_id'])) {
+            $clauses[] = 'd.funcionario_id = :funcionario_id';
             $params['funcionario_id'] = (int)$filters['funcionario_id'];
         }
 
         if (!empty($filters['prazo_de'])) {
-            $where[] = 'd.prazo_entrega >= :prazo_de';
+            $clauses[] = 'd.data_prazo_resposta >= :prazo_de';
             $params['prazo_de'] = $filters['prazo_de'] . ' 00:00:00';
         }
 
         if (!empty($filters['prazo_ate'])) {
-            $where[] = 'd.prazo_entrega <= :prazo_ate';
+            $clauses[] = 'd.data_prazo_resposta <= :prazo_ate';
             $params['prazo_ate'] = $filters['prazo_ate'] . ' 23:59:59';
         }
 
-        $sqlWhere = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        return [$sqlWhere, $params];
+        $where = $clauses ? ' WHERE ' . implode(' AND ', $clauses) : '';
+
+        return [$where, $params];
     }
 }

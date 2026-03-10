@@ -1,15 +1,13 @@
 <?php
 $calendarEvents = array_map(static function (array $demand): array {
     $color = match ($demand['status']) {
-        'concluida' => '#16a34a',
-        'atrasada' => '#dc2626',
-        'em_andamento' => '#1f6feb',
+        'cadastrado' => '#16a34a',
         default => '#f59e0b',
     };
 
     return [
         'title' => $demand['emenda'] . ' • ' . $demand['funcionario_nome'],
-        'start' => $demand['prazo_entrega'],
+        'start' => $demand['data_prazo_resposta'],
         'color' => $color,
     ];
 }, $demands);
@@ -26,9 +24,7 @@ $calendarEvents = array_map(static function (array $demand): array {
 <div class="row g-3 mb-4">
   <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Total de demandas</small><h4><?= (int)$stats['total'] ?></h4></div><div class="icon icon-preto"><i class="bi bi-collection"></i></div></div></div></div>
   <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Pendentes</small><h4><?= (int)$stats['pendente'] ?></h4></div><div class="icon icon-azul"><i class="bi bi-hourglass-split"></i></div></div></div></div>
-  <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Em andamento</small><h4><?= (int)$stats['em_andamento'] ?></h4></div><div class="icon icon-azul"><i class="bi bi-activity"></i></div></div></div></div>
-  <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Concluídas</small><h4><?= (int)$stats['concluida'] ?></h4></div><div class="icon icon-verde"><i class="bi bi-check-circle"></i></div></div></div></div>
-  <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Atrasadas</small><h4><?= (int)$stats['atrasada'] ?></h4></div><div class="icon icon-preto"><i class="bi bi-exclamation-triangle"></i></div></div></div></div>
+  <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Cadastradas</small><h4><?= (int)$stats['cadastrado'] ?></h4></div><div class="icon icon-verde"><i class="bi bi-check-circle"></i></div></div></div></div>
 </div>
 
 <div class="row g-3">
@@ -70,7 +66,7 @@ $calendarEvents = array_map(static function (array $demand): array {
                 <strong><?= e($item['emenda']) ?></strong><br>
                 <small class="text-muted"><?= e($item['funcionario_nome']) ?></small>
               </div>
-              <small class="badge bg-dark"><?= e(date('d/m H:i', strtotime($item['prazo_entrega']))) ?></small>
+              <small class="badge bg-dark"><?= e(date('d/m H:i', strtotime($item['data_prazo_resposta']))) ?></small>
             </li>
           <?php endforeach; ?>
           <?php if (empty($upcoming)): ?>

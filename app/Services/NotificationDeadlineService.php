@@ -5,14 +5,6 @@ namespace App\Services;
 use App\Models\Demand;
 use App\Models\Notification;
 
-/**
- * Serviço responsável pelo módulo de notificações e controle de prazo.
- *
- * Centraliza regras reutilizáveis para:
- * - alerta de demandas com 24h ou menos;
- * - prevenção de notificações duplicadas excessivas;
- * - notificação de conclusão de demanda ao Master.
- */
 class NotificationDeadlineService
 {
     public function __construct(
@@ -21,33 +13,20 @@ class NotificationDeadlineService
     ) {
     }
 
-    /**
-     * Atualiza status atrasado e dispara alertas de 24h para o Master.
-     *
-     * @return array{overdue_updated:int, alerts_created:int}
-     */
-    public function runAutomationForMaster(int $masterId): array
+    public function runAutomationForMaster(int $masterId): int
     {
-        $overdueUpdated = $this->demands->refreshOverdueStatuses();
         $alertsCreated = 0;
 
         foreach ($this->demands->dueIn24Hours() as $item) {
             $demandId = (int)$item['id'];
-
-            // Evita repetição excessiva da mesma notificação em janelas curtas.
             if ($this->notifications->existsRecent($masterId, 'prazo_24h', $demandId, 24)) {
                 continue;
             }
 
             $this->notifications->notify(
                 $masterId,
-                'Prazo próximo (<= 24h)',
-                sprintf(
-                    'Demanda #%d (%s) vence em até 24h. Responsável: %s.',
-                    $demandId,
-                    $item['emenda'],
-                    $item['funcionario_nome']
-                ),
+                'Prazo próximo (24h)',
+                sprintf('A demanda "%s" atribuída para %s vence em até 24 horas.', $item['emenda'], $item['funcionario_nome']),
                 'prazo_24h',
                 $demandId,
                 'demandas'
@@ -55,25 +34,41 @@ class NotificationDeadlineService
             $alertsCreated++;
         }
 
-        return [
-            'overdue_updated' => $overdueUpdated,
-            'alerts_created' => $alertsCreated,
-        ];
+        return $alertsCreated;
     }
 
-    /**
-     * Gera notificação de conclusão para o Master com referência da demanda.
-     */
-    public function notifyDemandCompletedForMaster(int $masterId, array $demand, string $employeeName): bool
+    public function notifyDemandAssignedToEmployee(int $employeeId, array $demand): bool
     {
-        $demandId = (int)($demand['id'] ?? 0);
+        return $this->notifications->notify(
+            $employeeId,
+            'Nova demanda atribuída',
+            sprintf('A demanda "%s" foi cadastrada e atribuída a você.', $demand['emenda'] ?? 'Sem título'),
+            'demanda_nova',
+            (int)($demand['id'] ?? 0),
+            'demandas'
+        );
+    }
 
+    public function notifyDemandUpdatedToEmployee(int $employeeId, array $demand): bool
+    {
+        return $this->notifications->notify(
+            $employeeId,
+            'Demanda atualizada',
+            sprintf('A demanda "%s" recebeu atualização do Master.', $demand['emenda'] ?? 'Sem título'),
+            'demanda_atualizada',
+            (int)($demand['id'] ?? 0),
+            'demandas'
+        );
+    }
+
+    public function notifyDemandEventToMaster(int $masterId, array $demand, string $title, string $message, string $type): bool
+    {
         return $this->notifications->notify(
             $masterId,
-            'Demanda concluída',
-            sprintf('%s concluiu a demanda #%d (%s).', $employeeName, $demandId, $demand['emenda'] ?? 'sem título'),
-            'conclusao_demanda',
-            $demandId,
+            $title,
+            $message,
+            $type,
+            (int)($demand['id'] ?? 0),
             'demandas'
         );
     }
