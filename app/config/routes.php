@@ -37,6 +37,7 @@ $router->get('/funcionario/dashboard', [FuncionarioController::class, 'dashboard
 $router->get('/funcionario/demandas', [FuncionarioController::class, 'demands']);
 $router->post('/funcionario/demandas/concluir', [FuncionarioController::class, 'completeDemand']);
 $router->post('/funcionario/demandas/status', [FuncionarioController::class, 'updateStatus']);
+$router->post('/funcionario/demandas/atualizar', [FuncionarioController::class, 'updateDemandProgress']);
 $router->get('/funcionario/notificacoes', [FuncionarioController::class, 'notifications']);
 $router->post('/funcionario/notificacoes/lida', [FuncionarioController::class, 'readNotification']);
 
@@ -45,6 +46,7 @@ $router->get('/employee/dashboard', [EmployeeController::class, 'dashboard']);
 $router->get('/employee/demands', [EmployeeController::class, 'demands']);
 $router->post('/employee/demands/complete', [EmployeeController::class, 'completeDemand']);
 $router->post('/employee/demands/status', [EmployeeController::class, 'updateStatus']);
+$router->post('/employee/demands/update', [EmployeeController::class, 'updateDemandProgress']);
 $router->get('/employee/notifications', [EmployeeController::class, 'notifications']);
 $router->post('/employee/notifications/read', [EmployeeController::class, 'readNotification']);
 

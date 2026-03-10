@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initRealtimePanelSync();
 });
 
-function initSidebar() { /* unchanged */
+function initSidebar() {
   const appShell = document.getElementById('appShell');
   const sidebar = document.getElementById('sidebarNav');
   const sidebarToggle = document.getElementById('sidebarToggle');
@@ -35,7 +35,6 @@ function initRealtimePanelSync() {
 
   const syncUrl = appShell.dataset.syncUrl;
   const readUrl = appShell.dataset.notificationReadUrl;
-  const statusUrl = appShell.dataset.employeeStatusUrl;
   const csrfToken = appShell.dataset.csrfToken || '';
   const fallbackListUrl = appShell.dataset.notificationBaseUrl || '#';
   const masterDemandsUrl = appShell.dataset.masterDemandsUrl || fallbackListUrl;
@@ -46,14 +45,6 @@ function initRealtimePanelSync() {
   if (!syncUrl || !readUrl) return;
 
   let lastNotificationId = Number(appShell.dataset.notificationLatestId || 0);
-  let nativeAllowed = false;
-
-  if ('Notification' in window) {
-    if (Notification.permission === 'granted') nativeAllowed = true;
-    else if (Notification.permission === 'default') {
-      Notification.requestPermission().then((p) => { nativeAllowed = p === 'granted'; }).catch(() => {});
-    }
-  }
 
   const poll = async () => {
     try {
@@ -73,7 +64,6 @@ function initRealtimePanelSync() {
             ? (payload.role === 'master' ? masterDemandsUrl : employeeDemandsUrl)
             : fallbackListUrl;
           showToast(item, item.link || destination, toastArea, () => markNotificationRead(readUrl, csrfToken, Number(item.id || 0)));
-          if (nativeAllowed) new Notification(item.titulo || 'Notificação', { body: item.mensagem || '' });
         });
       }
 
@@ -83,7 +73,6 @@ function initRealtimePanelSync() {
         renderMasterUpcoming(payload.upcoming || []);
         renderMasterDashboardNotifications(payload.notifications || []);
       } else {
-        renderEmployeeDemands(payload.demands || [], statusUrl, csrfToken, attachmentDownloadUrl);
         renderEmployeeSummary(payload.summary || {});
       }
     } catch (error) {
@@ -93,6 +82,16 @@ function initRealtimePanelSync() {
 
   poll();
   setInterval(poll, 15000);
+}
+
+function statusLabel(status) {
+  const map = { pendente: 'Pendente', cadastrada: 'Cadastrada', 'concluído': 'Concluído' };
+  return map[status] || status || '-';
+}
+
+function statusBadgeClass(status) {
+  const map = { pendente: 'badge-pendente', cadastrada: 'badge-cadastrada', 'concluído': 'badge-concluido' };
+  return map[status] || 'bg-secondary';
 }
 
 function renderHeaderNotifications(items, fallbackUrl) {
@@ -116,35 +115,13 @@ function renderMasterDemands(demands, masterDemandsUrl, attachmentDownloadUrl) {
     <tr>
       <td><strong>${escapeHtml(d.emenda || '')}</strong><br><small class="text-muted">${escapeHtml(d.funcionario_nome || '-')}</small></td>
       <td>${escapeHtml(d.funcionario_nome || '-')}</td>
-      <td>${formatDate(d.data_prazo_resposta)}</td>
-      <td><span class="badge bg-secondary">${escapeHtml(d.status || '')}</span></td>
-      <td>${d.anexo_emenda ? `<a class=\"btn btn-sm btn-outline-dark\" href=\"${attachmentDownloadUrl}?inline=1&demand_id=${Number(d.id||0)}\" target=\"_blank\">Visualizar</a>` : '<span class=\"text-muted\">-</span>'}</td>
-      <td><a class="btn btn-sm btn-outline-primary" href="${masterDemandsUrl}">Abrir painel</a></td>
-    </tr>
-  `).join('');
-}
-
-function renderEmployeeDemands(demands, statusUrl, csrf, attachmentDownloadUrl) {
-  const tbody = document.getElementById('employeeDemandsBody');
-  if (!tbody) return;
-  tbody.innerHTML = demands.map((d) => `
-    <tr>
-      <td><strong>${escapeHtml(d.emenda || '')}</strong><br><small class="text-muted">${escapeHtml(d.nome_politico || '')}</small></td>
-      <td>${escapeHtml(d.tipo_processo || '')} / ${escapeHtml(d.tipo_emenda || '')}</td>
-      <td>${formatDate(d.data_prazo_resposta)}</td>
-      <td><span class="badge bg-secondary">${escapeHtml(d.status || '')}</span></td>
-      <td>${d.anexo_emenda ? `<a target=\"_blank\" href=\"${attachmentDownloadUrl}?demand_id=${Number(d.id||0)}\">Abrir</a>` : '-'}</td>
       <td>
-        <form method="post" action="${statusUrl || '#'}" class="d-flex gap-2">
-          <input type="hidden" name="_csrf" value="${escapeHtml(csrf)}">
-          <input type="hidden" name="id" value="${Number(d.id||0)}">
-          <select class="form-select form-select-sm" name="status" required>
-            <option value="pendente" ${d.status === 'pendente' ? 'selected' : ''}>Pendente</option>
-            <option value="cadastrado" ${d.status === 'cadastrado' ? 'selected' : ''}>Cadastrado</option>
-          </select>
-          <button class="btn btn-sm btn-primary">Atualizar</button>
-        </form>
+        <small class="text-muted d-block">Prazo funcionário</small>${formatDate(d.data_prazo_resposta)}
+        <small class="text-muted d-block mt-1">Prazo administrativo</small>${formatDate(d.data_cadastro_emenda, true)}
       </td>
+      <td><span class="badge badge-status ${statusBadgeClass(d.status)}">${escapeHtml(statusLabel(d.status))}</span></td>
+      <td>${d.anexo_emenda ? `<a class="btn btn-sm btn-outline-dark" href="${attachmentDownloadUrl}?inline=1&demand_id=${Number(d.id||0)}" target="_blank">Visualizar</a>` : '<span class="text-muted">-</span>'}</td>
+      <td><a class="btn btn-sm btn-outline-primary" href="${masterDemandsUrl}">Abrir painel</a></td>
     </tr>
   `).join('');
 }
@@ -153,13 +130,19 @@ function renderMasterStats(stats) {
   const map = [
     ['masterStatTotal', stats.total || 0],
     ['masterStatPendente', stats.pendente || 0],
-    ['masterStatCadastrado', stats.cadastrado || 0],
+    ['masterStatCadastrada', stats.cadastrada || 0],
+    ['masterStatConcluido', stats['concluído'] || 0],
   ];
   map.forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.textContent = String(val); });
 }
 
 function renderEmployeeSummary(summary) {
-  const map = [['employeeSummaryTotal', summary.total || 0], ['employeeSummaryPendente', summary.pendente || 0], ['employeeSummaryCadastrado', summary.cadastrado || 0]];
+  const map = [
+    ['employeeSummaryTotal', summary.total || 0],
+    ['employeeSummaryPendente', summary.pendente || 0],
+    ['employeeSummaryCadastrada', summary.cadastrada || 0],
+    ['employeeSummaryConcluido', summary['concluído'] || 0],
+  ];
   map.forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.textContent = String(val); });
 }
 
@@ -200,7 +183,7 @@ function showToast(item, destinationUrl, toastArea, onOpen) {
   const message = escapeHtml(item.mensagem || 'Nova atualização disponível.');
   const timestamp = new Date(item.created_at || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const wrapper = document.createElement('div');
-  wrapper.innerHTML = `<div class="toast border-0 shadow-sm" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000"><div class="toast-header"><strong class="me-auto">${title}</strong><small>${timestamp}</small><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button></div><div class="toast-body"><a class="text-decoration-none" href="${destinationUrl}">${message}</a></div></div>`;
+  wrapper.innerHTML = `<div class="toast toast-gray border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6500"><div class="toast-header toast-gray-header"><strong class="me-auto">${title}</strong><small>${timestamp}</small><button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button></div><div class="toast-body"><a class="text-decoration-none text-light" href="${destinationUrl}">${message}</a></div></div>`;
   const toastElement = wrapper.firstElementChild; toastArea.appendChild(toastElement);
   const anchor = toastElement.querySelector('a'); if (anchor && typeof onOpen === 'function') anchor.addEventListener('click', () => onOpen());
   new window.bootstrap.Toast(toastElement).show();
@@ -209,7 +192,7 @@ function showToast(item, destinationUrl, toastArea, onOpen) {
 
 function formatDate(value, compact = false) {
   if (!value) return '-';
-  const date = new Date(value.replace(' ', 'T'));
+  const date = new Date(String(value).replace(' ', 'T'));
   if (Number.isNaN(date.getTime())) return escapeHtml(value);
   return date.toLocaleString('pt-BR', compact ? { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' } : { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }

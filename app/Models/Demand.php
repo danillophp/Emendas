@@ -6,7 +6,7 @@ use App\Core\Database;
 
 class Demand
 {
-    public const STATUS_ALLOWED = ['pendente', 'cadastrado'];
+    public const STATUS_ALLOWED = ['pendente', 'cadastrada', 'concluído'];
     public const PROCESS_TYPES = ['prestacao_de_conta', 'cadastro_de_emenda'];
     public const AMENDMENT_TYPES = ['parlamentar', 'estadual', 'municipal'];
 
@@ -101,16 +101,20 @@ class Demand
         return $stmt->fetch() ?: null;
     }
 
-    public function updateStatusByEmployee(int $id, int $employeeId, string $status): bool
+    public function updateProgressByEmployee(int $id, int $employeeId, string $status, string $employeeNote): bool
     {
         $sql = 'UPDATE demandas
-                SET status = :status, data_ultima_atualizacao = NOW(), updated_at = NOW()
+                SET status = :status,
+                    observacao_funcionario = :observacao_funcionario,
+                    data_ultima_atualizacao = NOW(),
+                    updated_at = NOW()
                 WHERE id = :id AND funcionario_id = :funcionario_id';
 
         return Database::connection()->prepare($sql)->execute([
             'id' => $id,
             'funcionario_id' => $employeeId,
             'status' => $status,
+            'observacao_funcionario' => $employeeNote,
         ]);
     }
 
@@ -145,7 +149,7 @@ class Demand
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        $stats = ['total' => 0, 'pendente' => 0, 'cadastrado' => 0];
+        $stats = ['total' => 0, 'pendente' => 0, 'cadastrada' => 0, 'concluído' => 0];
         foreach ($rows as $row) {
             $stats['total'] += (int)$row['total'];
             if (isset($stats[$row['status']])) {

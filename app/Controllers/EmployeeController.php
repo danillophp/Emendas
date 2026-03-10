@@ -5,9 +5,9 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Demand;
 use App\Models\Notification;
-use App\Services\NotificationDeadlineService;
 use App\Models\SystemLog;
 use App\Models\User;
+use App\Services\NotificationDeadlineService;
 
 class EmployeeController extends Controller
 {
@@ -36,60 +36,95 @@ class EmployeeController extends Controller
 
     public function completeDemand(): void
     {
-        $this->updateStatus();
+        $this->updateDemandProgress();
     }
 
     public function updateStatus(): void
     {
+        $this->updateDemandProgress();
+    }
+
+    public function updateDemandProgress(): void
+    {
         $this->requireAuth('funcionario');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) { flash('error', 'Falha de segurança na requisição.'); redirect('funcionario/demandas'); }
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Falha de segurança na requisição.');
+            redirect('funcionario/demandas');
+        }
 
         $employeeId = (int)$_SESSION['user']['id'];
         $demandId = (int)($_POST['id'] ?? 0);
         $status = trim((string)($_POST['status'] ?? ''));
+        $newObservation = trim((string)($_POST['observacao_funcionario'] ?? ''));
 
         if ($demandId <= 0 || !in_array($status, Demand::STATUS_ALLOWED, true)) {
-            flash('error', 'Dados inválidos para atualização de status.');
+            flash('error', 'Dados inválidos para atualização da demanda.');
+            redirect('funcionario/demandas');
+        }
+
+        if ($newObservation !== '' && mb_strlen($newObservation) > 2500) {
+            flash('error', 'A observação deve ter no máximo 2500 caracteres.');
             redirect('funcionario/demandas');
         }
 
         $ownedDemand = $this->demands->findOwnedById($demandId, $employeeId);
-        if (!$ownedDemand) { flash('error', 'Você não tem permissão para alterar esta demanda.'); redirect('funcionario/demandas'); }
+        if (!$ownedDemand) {
+            flash('error', 'Você não tem permissão para alterar esta demanda.');
+            redirect('funcionario/demandas');
+        }
 
-        if (!$this->demands->updateStatusByEmployee($demandId, $employeeId, $status)) {
-            flash('error', 'Não foi possível atualizar o status.');
+        $previousObservation = trim((string)($ownedDemand['observacao_funcionario'] ?? ''));
+        $observationLog = $previousObservation;
+        if ($newObservation !== '') {
+            $entry = sprintf("[%s] %s: %s", date('d/m/Y H:i'), (string)($_SESSION['user']['name'] ?? 'Funcionário'), $newObservation);
+            $observationLog = $previousObservation === '' ? $entry : ($previousObservation . "\n" . $entry);
+        }
+
+        if (!$this->demands->updateProgressByEmployee($demandId, $employeeId, $status, $observationLog)) {
+            flash('error', 'Não foi possível atualizar a demanda.');
             redirect('funcionario/demandas');
         }
 
         $masterId = $this->users->findActiveMasterId();
         if ($masterId !== null) {
+            $message = sprintf(
+                '%s atualizou a demanda "%s" para "%s"%s',
+                (string)($_SESSION['user']['name'] ?? 'Funcionário'),
+                $ownedDemand['emenda'] ?? '',
+                $status,
+                $newObservation !== '' ? ' e registrou nova observação.' : '.'
+            );
+
             $this->deadlineService->notifyDemandEventToMaster(
                 $masterId,
                 ['id' => $demandId],
-                'Status atualizado pelo funcionário',
-                sprintf('%s atualizou a demanda "%s" para o status %s.', (string)($_SESSION['user']['name'] ?? 'Funcionário'), $ownedDemand['emenda'] ?? '', $status),
+                'Atualização de demanda pelo funcionário',
+                $message,
                 'status_funcionario'
             );
         }
 
         $this->logs->create([
             'usuario_id' => $employeeId,
-            'acao' => 'update_status',
+            'acao' => 'update_demand_progress',
             'entidade' => 'demandas',
             'entidade_id' => $demandId,
-            'descricao' => 'Funcionário alterou status para ' . $status,
+            'descricao' => 'Funcionário atualizou status para ' . $status . ($newObservation !== '' ? ' com observação.' : '.'),
             'ip' => client_ip(),
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
         ]);
 
-        flash('success', 'Status atualizado com sucesso.');
+        flash('success', 'Demanda atualizada com sucesso.');
         redirect('funcionario/demandas');
     }
 
     public function readNotification(): void
     {
         $this->requireAuth('funcionario');
-        if (!verify_csrf($_POST['_csrf'] ?? null)) { flash('error', 'Falha de segurança na requisição.'); redirect('funcionario/notificacoes'); }
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Falha de segurança na requisição.');
+            redirect('funcionario/notificacoes');
+        }
         $notificationId = (int)($_POST['id'] ?? 0);
         $this->notifications->markRead($notificationId, (int)$_SESSION['user']['id']);
         flash('success', 'Notificação marcada como lida.');

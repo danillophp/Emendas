@@ -3,7 +3,7 @@
 -- Banco alvo: santo821_emenda
 -- Objetivo:
 --   1) Atualizar estrutura de demandas para o novo fluxo
---   2) Restringir status a ('pendente','cadastrado')
+--   2) Restringir status a ('pendente','cadastrada','concluído')
 --   3) Robustecer tabela notificacoes
 --   4) Garantir índices de performance e integridade referencial
 -- Compatibilidade: MySQL 5.7+ / 8.0+
@@ -125,6 +125,19 @@ BEGIN
           ADD COLUMN data_cadastro_emenda DATE NULL AFTER data_prazo_resposta;
     END IF;
 
+
+    -- 1.5.1 observacao_funcionario
+    SELECT COUNT(*) INTO v_exists
+      FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'demandas'
+       AND COLUMN_NAME = 'observacao_funcionario';
+
+    IF v_exists = 0 THEN
+      ALTER TABLE demandas
+          ADD COLUMN observacao_funcionario TEXT NULL AFTER observacao;
+    END IF;
+
     -- 1.5 anexo_emenda
     SELECT COUNT(*) INTO v_exists
       FROM information_schema.COLUMNS
@@ -226,20 +239,21 @@ BEGIN
       MODIFY COLUMN data_cadastro_emenda DATE NOT NULL;
 
     -- -----------------------------------------------------------------
-    -- 3) STATUS: RESTRIÇÃO PARA ('pendente','cadastrado')
+    -- 3) STATUS: RESTRIÇÃO PARA ('pendente','cadastrada','concluído')
     -- -----------------------------------------------------------------
 
     -- Mapeia status legado para domínio novo
     UPDATE demandas
        SET status = CASE
-           WHEN status IN ('cadastrado') THEN 'cadastrado'
-           WHEN status IN ('em_andamento','concluida') THEN 'cadastrado'
+           WHEN status IN ('cadastrada') THEN 'cadastrada'
+           WHEN status IN ('em_andamento') THEN 'cadastrada'
+           WHEN status IN ('concluida','concluído') THEN 'concluído'
            WHEN status IN ('atrasada') THEN 'pendente'
            ELSE 'pendente'
        END;
 
     ALTER TABLE demandas
-      MODIFY COLUMN status ENUM('pendente','cadastrado') NOT NULL DEFAULT 'pendente';
+      MODIFY COLUMN status ENUM('pendente','cadastrada','concluído') NOT NULL DEFAULT 'pendente';
 
     -- -----------------------------------------------------------------
     -- 4) REMOÇÃO DE COLUNAS LEGADAS (SE EXISTIREM)

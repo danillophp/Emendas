@@ -1,7 +1,8 @@
 <?php
 $calendarEvents = array_map(static function (array $demand): array {
     $color = match ($demand['status']) {
-        'cadastrado' => '#16a34a',
+        'concluído' => '#16a34a',
+        'cadastrada' => '#2563eb',
         default => '#f59e0b',
     };
 
@@ -24,7 +25,8 @@ $calendarEvents = array_map(static function (array $demand): array {
 <div class="row g-3 mb-4">
   <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Total de demandas</small><h4 id="masterStatTotal"><?= (int)$stats['total'] ?></h4></div><div class="icon icon-preto"><i class="bi bi-collection"></i></div></div></div></div>
   <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Pendentes</small><h4 id="masterStatPendente"><?= (int)$stats['pendente'] ?></h4></div><div class="icon icon-azul"><i class="bi bi-hourglass-split"></i></div></div></div></div>
-  <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Cadastradas</small><h4 id="masterStatCadastrado"><?= (int)$stats['cadastrado'] ?></h4></div><div class="icon icon-verde"><i class="bi bi-check-circle"></i></div></div></div></div>
+  <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Cadastradas</small><h4 id="masterStatCadastrada"><?= (int)$stats['cadastrada'] ?></h4></div><div class="icon icon-azul"><i class="bi bi-clipboard-check"></i></div></div></div></div>
+  <div class="col-md-6 col-xl"><div class="card card-ui kpi p-3"><div class="d-flex justify-content-between"><div><small>Concluídas</small><h4 id="masterStatConcluido"><?= (int)($stats['concluído'] ?? 0) ?></h4></div><div class="icon icon-verde"><i class="bi bi-check-circle"></i></div></div></div></div>
 </div>
 
 <div class="row g-3">
