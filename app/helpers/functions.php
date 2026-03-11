@@ -33,6 +33,80 @@ function redirect(string $path): void
     exit;
 }
 
+
+/**
+ * Retorna o caminho absoluto dentro de /public para um arquivo relativo.
+ */
+function public_path(string $relativePath = ''): string
+{
+    $relativePath = ltrim(trim($relativePath), '/');
+    $publicBase = rtrim(BASE_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'public';
+
+    return $relativePath === ''
+        ? $publicBase
+        : $publicBase . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
+}
+
+/**
+ * Resolve um asset dentro de /public com fallback para case-insensitive (Linux-safe).
+ * Retorna o caminho relativo encontrado (preservando o case real) ou null.
+ */
+function resolve_public_asset(string $relativePath): ?string
+{
+    $relativePath = trim($relativePath);
+    if ($relativePath === '') {
+        return null;
+    }
+
+    $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+    $directory = trim(dirname($relativePath), '.');
+    $filename = basename($relativePath);
+
+    $roots = [];
+    $documentRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+    $basePath = rtrim(APP_BASE_PATH, '/');
+
+    if ($documentRoot !== '') {
+        $roots[] = $documentRoot . ($basePath !== '' ? $basePath : '') . '/public';
+        $roots[] = $documentRoot . ($basePath !== '' ? $basePath : '');
+    }
+
+    $roots[] = public_path();
+
+    $roots = array_values(array_unique(array_filter($roots)));
+
+    foreach ($roots as $root) {
+        $root = rtrim(str_replace('\\', '/', $root), '/');
+        $full = $root . '/' . $relativePath;
+
+        if (is_file($full)) {
+            return $relativePath;
+        }
+
+        $dirFull = $directory !== '' ? $root . '/' . $directory : $root;
+        if (!is_dir($dirFull)) {
+            continue;
+        }
+
+        $entries = @scandir($dirFull);
+        if ($entries === false) {
+            continue;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            if (strcasecmp($entry, $filename) === 0 && is_file($dirFull . '/' . $entry)) {
+                return ($directory !== '' ? $directory . '/' : '') . $entry;
+            }
+        }
+    }
+
+    return null;
+}
+
 function flash(string $key, ?string $value = null): ?string
 {
     if ($value !== null) {

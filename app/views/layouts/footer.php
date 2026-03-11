@@ -8,8 +8,9 @@
 
 <?php
 $logoRelativePath = 'assets/img/logo/logo-prefeitura.png';
-$logoFullPath = dirname(__DIR__, 3) . '/public/' . $logoRelativePath;
-$hasInstitutionalLogo = is_file($logoFullPath);
+$resolvedLogoRelativePath = resolve_public_asset($logoRelativePath);
+$hasInstitutionalLogo = $resolvedLogoRelativePath !== null;
+$logoUrl = $hasInstitutionalLogo ? url('public/' . $resolvedLogoRelativePath) : null;
 ?>
 
 <footer class="institutional-footer mt-4" role="contentinfo" aria-label="Rodapé institucional da Prefeitura">
@@ -19,7 +20,7 @@ $hasInstitutionalLogo = is_file($logoFullPath);
         <div class="footer-brand d-flex align-items-center gap-3 mb-3">
           <?php if ($hasInstitutionalLogo): ?>
             <img
-              src="<?= url($logoRelativePath) ?>"
+              src="<?= e($logoUrl ?? '') ?>"
               alt="Logomarca oficial da Prefeitura de Santo Antônio do Descoberto"
               class="footer-logo"
               loading="lazy"
