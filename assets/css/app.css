@@ -169,3 +169,65 @@ div.dataTables_wrapper div.dataTables_filter input {
   border-bottom: 1px solid rgba(255,255,255,.15);
 }
 .toast-gray-header small { color: #e5e7eb; }
+
+/* ---------- Institutional footer ---------- */
+.institutional-footer {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  color: #e2e8f0;
+}
+
+.footer-title {
+  color: #f8fafc;
+  font-weight: 700;
+  margin-bottom: .65rem;
+}
+
+.footer-logo {
+  max-width: 210px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: .5rem;
+  background: rgba(255, 255, 255, .95);
+  padding: .4rem;
+}
+
+.footer-logo-placeholder {
+  min-height: 62px;
+  min-width: 210px;
+  max-width: 240px;
+  border: 1px dashed rgba(226, 232, 240, .45);
+  border-radius: .6rem;
+  color: #cbd5e1;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, .08);
+  padding: .6rem;
+}
+
+.footer-portal-link {
+  color: #93c5fd;
+  font-weight: 600;
+  text-decoration: none;
+}
+.footer-portal-link:hover,
+.footer-portal-link:focus {
+  color: #dbeafe;
+  text-decoration: underline;
+}
+
+.footer-list li,
+.footer-text {
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+@media (max-width: 767px) {
+  .footer-logo-placeholder {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
