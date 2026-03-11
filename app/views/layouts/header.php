@@ -35,11 +35,16 @@
       ];
 ?>
 <div class="app-shell" id="appShell" data-polling-url="<?= url('api/notifications/poll') ?>" data-sync-url="<?= url($role === 'master' ? 'api/master/sync' : 'api/funcionario/sync') ?>" data-notification-read-url="<?= url('api/notifications/read') ?>" data-notification-base-url="<?= url($role === 'master' ? 'master/notifications' : 'funcionario/notificacoes') ?>" data-notification-latest-id="<?= (int)($headerNotifications[0]['id'] ?? 0) ?>" data-employee-status-url="<?= url('funcionario/demandas/status') ?>" data-master-demands-url="<?= url('master/demands') ?>" data-employee-demands-url="<?= url('funcionario/demandas') ?>" data-attachment-download-url="<?= url('anexos/demandas/download') ?>" data-csrf-token="<?= csrf_token() ?>">
-  <aside class="sidebar" id="sidebarNav">
+  <aside class="sidebar" id="sidebarNav" aria-label="Navegação principal">
     <a class="brand" href="<?= url($role === 'master' ? 'master/dashboard' : 'funcionario/dashboard') ?>">
-      <i class="bi bi-building"></i> Emendas Gov
+      <span class="brand-mark"><i class="bi bi-building"></i></span>
+      <span>
+        <strong>Emendas Gov</strong>
+        <small class="d-block text-white-50">Gestão Institucional</small>
+      </span>
     </a>
 
+    <div class="sidebar-section-title">Menu</div>
     <nav class="nav flex-column gap-1">
       <?php foreach ($navItems as $item): ?>
         <?php $active = str_starts_with($requestPath, $item['path']); ?>
@@ -51,20 +56,22 @@
   </aside>
 
   <div class="main-wrap">
-    <header class="topbar d-flex justify-content-between align-items-center">
+    <header class="topbar d-flex justify-content-between align-items-center gap-3">
       <div class="d-flex align-items-center gap-2">
         <button class="btn btn-outline-secondary btn-sm d-lg-none" id="sidebarToggle" type="button" aria-label="Abrir menu">
           <i class="bi bi-list"></i>
         </button>
-        <div>
-          <small class="text-muted d-block text-uppercase fw-semibold">Painel institucional</small>
-          <strong><?= e($_SESSION['user']['name']) ?></strong>
+        <div class="topbar-title-wrap">
+          <small class="topbar-kicker">Painel institucional</small>
+          <strong class="topbar-user-name"><?= e($_SESSION['user']['name']) ?></strong>
         </div>
       </div>
 
       <div class="d-flex align-items-center gap-2">
+        <span class="role-pill"><i class="bi bi-person-badge"></i> <?= e(strtoupper($role)) ?></span>
+
         <div class="dropdown">
-          <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="dropdown" aria-expanded="false">
+          <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Abrir notificações">
             <i class="bi bi-bell"></i>
             <?php if ((int)$headerUnreadCount > 0): ?>
               <span id="headerUnreadBadge" class="badge rounded-pill bg-warning text-dark position-absolute top-0 start-100 translate-middle"><?= (int)$headerUnreadCount ?></span>
@@ -97,7 +104,7 @@
       </div>
     </header>
 
-    <main class="container-fluid p-3 p-lg-4">
+    <main class="container-fluid p-3 p-lg-4 main-content-shell">
 <?php else: ?>
 <main class="container py-4">
 <?php endif; ?>

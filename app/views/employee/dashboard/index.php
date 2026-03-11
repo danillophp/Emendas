@@ -1,7 +1,12 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">Dashboard do Funcionário</h3>
-  <a href="<?= url('funcionario/demandas') ?>" class="btn btn-primary btn-icon"><i class="bi bi-list-check"></i> Minhas Demandas</a>
-</div>
+<section class="page-hero mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h3 class="mb-1">Dashboard do Funcionário</h3>
+      <p class="text-muted mb-0">Acompanhe suas demandas e mantenha o andamento sempre atualizado.</p>
+    </div>
+    <a href="<?= url('funcionario/demandas') ?>" class="btn btn-primary btn-icon"><i class="bi bi-list-check"></i> Minhas Demandas</a>
+  </div>
+</section>
 
 <div class="row g-3">
   <div class="col-md-3">

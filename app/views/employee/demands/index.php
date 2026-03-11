@@ -5,9 +5,14 @@ $processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_e
 $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'municipal' => 'Municipal'];
 ?>
 
-<h3 class="mb-3">Minhas Demandas</h3>
+<section class="page-hero mb-3">
+  <div>
+    <h3 class="mb-1">Minhas Demandas</h3>
+    <p class="text-muted mb-0">Abra cada demanda para registrar observações e atualizar o status com segurança.</p>
+  </div>
+</section>
 <div class="table-responsive">
-  <table class="table table-striped table-modern align-middle data-table" id="employeeDemandsTable">
+  <table class="table table-striped table-modern align-middle data-table table-premium" id="employeeDemandsTable">
     <thead><tr><th>Emenda</th><th>Tipo</th><th>Prazo</th><th>Status</th><th>Anexo</th><th>Ação</th></tr></thead>
     <tbody id="employeeDemandsBody">
       <?php foreach ($demands as $demand): ?>

@@ -183,7 +183,7 @@ function showToast(item, destinationUrl, toastArea, onOpen) {
   const message = escapeHtml(item.mensagem || 'Nova atualização disponível.');
   const timestamp = new Date(item.created_at || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const wrapper = document.createElement('div');
-  wrapper.innerHTML = `<div class="toast toast-gray border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6500"><div class="toast-header toast-gray-header"><strong class="me-auto">${title}</strong><small>${timestamp}</small><button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button></div><div class="toast-body"><a class="text-decoration-none text-light" href="${destinationUrl}">${message}</a></div></div>`;
+  wrapper.innerHTML = `<div class="toast toast-gray border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6500"><div class="toast-header toast-gray-header"><span class="me-2"><i class="bi bi-info-circle"></i></span><strong class="me-auto">${title}</strong><small>${timestamp}</small><button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button></div><div class="toast-body"><a class="text-decoration-none text-light d-block" href="${destinationUrl}">${message}</a></div></div>`;
   const toastElement = wrapper.firstElementChild; toastArea.appendChild(toastElement);
   const anchor = toastElement.querySelector('a'); if (anchor && typeof onOpen === 'function') anchor.addEventListener('click', () => onOpen());
   new window.bootstrap.Toast(toastElement).show();

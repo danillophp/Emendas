@@ -5,12 +5,17 @@ $processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_e
 $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'municipal' => 'Municipal'];
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">Gestão de Demandas</h3>
-  <span class="text-muted">Fluxo com prazos operacionais e administrativos</span>
-</div>
+<section class="page-hero mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h3 class="mb-1">Gestão de Demandas</h3>
+      <p class="text-muted mb-0">Controle institucional completo de cadastro, prazos e acompanhamento.</p>
+    </div>
+    <span class="role-pill"><i class="bi bi-shield-check"></i> Governança ativa</span>
+  </div>
+</section>
 
-<div class="card card-ui mb-3"><div class="card-body">
+<div class="card card-ui mb-3 surface-card"><div class="card-body">
 <form method="get" action="<?= url('master/demands') ?>" class="row g-2">
   <div class="col-md-3"><select class="form-select" name="status"><option value="">Todos os status</option><?php foreach ($statusLabels as $k=>$l): ?><option value="<?= $k ?>" <?= ($filters['status']??'')===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
   <div class="col-md-3"><select class="form-select" name="funcionario_id"><option value="">Todos os funcionários</option><?php foreach ($employees as $employee): ?><option value="<?= (int)$employee['id'] ?>" <?= (string)($filters['funcionario_id']??'')===(string)$employee['id']?'selected':'' ?>><?= e($employee['nome_completo']) ?></option><?php endforeach; ?></select></div>
@@ -20,8 +25,8 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
 </form>
 </div></div>
 
-<div class="card card-ui mb-4"><div class="card-body">
-<h5 class="mb-3">Cadastrar demanda</h5>
+<div class="card card-ui mb-4 surface-card"><div class="card-body">
+<h5 class="mb-3 section-title">Cadastrar demanda</h5>
 <form method="post" action="<?= url('master/demands/create') ?>" class="row g-3" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
   <div class="col-md-4"><input class="form-control" name="emenda" placeholder="Nome da emenda" required></div>
@@ -45,7 +50,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
 </div></div>
 
 <div class="table-responsive">
-<table class="table table-hover table-modern align-middle data-table">
+<table class="table table-hover table-modern align-middle data-table table-premium">
 <thead><tr><th>Demanda</th><th>Responsável</th><th>Prazos</th><th>Status</th><th>Anexo</th><th>Ações</th></tr></thead>
 <tbody id="masterDemandsBody">
 <?php foreach ($demands as $demand): ?>
