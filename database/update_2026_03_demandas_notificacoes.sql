@@ -106,11 +106,11 @@ BEGIN
 
     IF v_exists = 0 THEN
         ALTER TABLE demandas
-          ADD COLUMN tipo_emenda ENUM('parlamentar','estadual','municipal') NULL AFTER tipo_processo;
+          ADD COLUMN tipo_emenda ENUM('federal','estadual','municipal') NULL AFTER tipo_processo;
     ELSE
         -- Mantém dados existentes e converte tipo
         ALTER TABLE demandas
-          MODIFY COLUMN tipo_emenda ENUM('parlamentar','estadual','municipal') NULL;
+          MODIFY COLUMN tipo_emenda ENUM('federal','estadual','municipal') NULL;
     END IF;
 
     -- 1.3 data_prazo_resposta
@@ -200,10 +200,15 @@ BEGIN
      WHERE tipo_processo IS NULL;
 
     -- 2.2 Normaliza tipo_emenda para domínio válido
+    -- Migra valor legado 'parlamentar' para 'federal'
     UPDATE demandas
-       SET tipo_emenda = 'parlamentar'
+       SET tipo_emenda = 'federal'
+     WHERE tipo_emenda = 'parlamentar';
+
+    UPDATE demandas
+       SET tipo_emenda = 'federal'
      WHERE tipo_emenda IS NULL
-        OR tipo_emenda NOT IN ('parlamentar','estadual','municipal');
+        OR tipo_emenda NOT IN ('federal','estadual','municipal','parlamentar');
 
     -- 2.3 Usa colunas antigas quando disponíveis (prazo_entrega/data_emenda)
     SELECT COUNT(*) INTO v_exists
@@ -247,7 +252,7 @@ BEGIN
     ALTER TABLE demandas
       MODIFY COLUMN nome_politico VARCHAR(150) NULL,
       MODIFY COLUMN tipo_processo ENUM('prestacao_de_conta','cadastro_de_emenda') NOT NULL,
-      MODIFY COLUMN tipo_emenda ENUM('parlamentar','estadual','municipal') NOT NULL,
+      MODIFY COLUMN tipo_emenda ENUM('federal','estadual','municipal') NOT NULL,
       MODIFY COLUMN data_prazo_resposta DATETIME NOT NULL,
       MODIFY COLUMN data_cadastro_emenda DATE NOT NULL;
 

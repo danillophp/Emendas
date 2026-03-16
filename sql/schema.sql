@@ -78,7 +78,7 @@ CREATE TABLE `demandas` (
   `nome_politico` VARCHAR(150) NULL,
   `numero_processo_sei` VARCHAR(80) NULL,
   `tipo_processo` ENUM('prestacao_de_conta','cadastro_de_emenda') NOT NULL,
-  `tipo_emenda` ENUM('parlamentar','estadual','municipal') NOT NULL,
+  `tipo_emenda` ENUM('federal','estadual','municipal') NOT NULL,
   `data_prazo_resposta` DATETIME NOT NULL,
   `data_cadastro_emenda` DATE NOT NULL,
   `observacao` TEXT NULL,

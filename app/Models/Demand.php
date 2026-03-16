@@ -8,7 +8,7 @@ class Demand
 {
     public const STATUS_ALLOWED = ['pendente', 'cadastrada', 'concluído'];
     public const PROCESS_TYPES = ['prestacao_de_conta', 'cadastro_de_emenda'];
-    public const AMENDMENT_TYPES = ['parlamentar', 'estadual', 'municipal'];
+    public const AMENDMENT_TYPES = ['federal', 'estadual', 'municipal'];
 
     public function countFiltered(array $filters = []): int
     {
