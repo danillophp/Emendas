@@ -3,6 +3,7 @@ $statusLabels = ['pendente' => 'Pendente', 'cadastrada' => 'Cadastrada', 'conclu
 $statusClass = ['pendente' => 'badge-pendente', 'cadastrada' => 'badge-cadastrada', 'concluído' => 'badge-concluido'];
 $processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_emenda' => 'Cadastro de emenda'];
 $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal' => 'Municipal'];
+$historyActionLabels = ['create' => 'Criação da demanda','edit' => 'Edição da demanda','status_change' => 'Alteração de status','employee_note' => 'Observação do funcionário'];
 ?>
 
 <section class="page-hero mb-3">
@@ -105,7 +106,7 @@ $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal
         </div>
 
         <div>
-          <label class="form-label fw-semibold">Histórico de atualizações do funcionário</label>
+          <label class="form-label fw-semibold">Histórico completo da demanda</label>
           <?php $historyRows = $historyMap[(int)$demand['id']] ?? []; ?>
           <?php if (!empty($historyRows)): ?>
             <div class="list-group list-group-flush border rounded">
@@ -115,13 +116,14 @@ $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal
                     <strong><?= e($history['usuario_nome_atual'] ?? $history['usuario_nome'] ?? 'Funcionário') ?></strong>
                     <small class="text-muted"><?= e(date('d/m/Y H:i', strtotime($history['created_at']))) ?></small>
                   </div>
-                  <div class="small mt-1">Status: <span class="text-muted"><?= e($history['status_anterior'] ?? '-') ?></span> → <strong><?= e($history['status_novo'] ?? '-') ?></strong></div>
+                  <div class="small mt-1">Tipo: <strong><?= e($historyActionLabels[$history['acao'] ?? ''] ?? ($history['acao'] ?? 'Atualização')) ?></strong></div>
+                  <div class="small mt-1">Status: <span class="text-muted"><?= e($statusLabels[$history['status_anterior']] ?? ($history['status_anterior'] ?? '-')) ?></span> → <strong><?= e($statusLabels[$history['status_novo']] ?? ($history['status_novo'] ?? '-')) ?></strong></div>
                   <div class="small mt-1">Observação: <?= e(trim((string)($history['observacao'] ?? '')) !== '' ? $history['observacao'] : 'Sem observação nesta atualização.') ?></div>
                 </div>
               <?php endforeach; ?>
             </div>
           <?php else: ?>
-            <div class="alert alert-light border mb-0">Ainda não há histórico de alterações feito por funcionário para esta demanda.</div>
+            <div class="alert alert-light border mb-0">Ainda não há histórico registrado para esta demanda.</div>
           <?php endif; ?>
         </div>
       </div>

@@ -97,6 +97,15 @@ class MasterController extends Controller
         $demand = $this->demands->findById($demandId) ?? ($payload['data'] + ['id' => $demandId]);
 
         $masterId = (int)$_SESSION['user']['id'];
+        $this->demands->registerHistory(
+            $demandId,
+            $masterId,
+            (string)($_SESSION['user']['name'] ?? 'Master'),
+            Demand::HISTORY_ACTION_CREATE,
+            null,
+            (string)($dataToPersist['status'] ?? 'pendente'),
+            'Demanda criada pelo Master.'
+        );
         $this->deadlineService->notifyDemandEventToMaster($masterId, $demand, 'Nova demanda cadastrada', 'A demanda foi cadastrada com sucesso no sistema.', 'demanda_criada_master');
         $this->deadlineService->notifyDemandAssignedToEmployee((int)$payload['data']['funcionario_id'], $demand);
 
@@ -121,6 +130,26 @@ class MasterController extends Controller
 
         $this->demands->update($id, $dataToPersist);
         $updated = $this->demands->findById($id) ?? ($payload['data'] + ['id' => $id]);
+
+        $changedFields = [];
+        foreach (['emenda','nome_politico','numero_processo_sei','tipo_processo','tipo_emenda','data_prazo_resposta','data_cadastro_emenda','funcionario_id'] as $field) {
+            if ((string)($current[$field] ?? '') !== (string)($dataToPersist[$field] ?? '')) {
+                $changedFields[] = $field;
+            }
+        }
+
+        $this->demands->registerHistory(
+            $id,
+            (int)($_SESSION['user']['id'] ?? 0),
+            (string)($_SESSION['user']['name'] ?? 'Master'),
+            Demand::HISTORY_ACTION_EDIT,
+            (string)($current['status'] ?? ''),
+            (string)($dataToPersist['status'] ?? ''),
+            $changedFields !== []
+                ? 'Campos alterados pelo Master: ' . implode(', ', $changedFields)
+                : 'Demanda editada pelo Master.'
+        );
+
         $this->deadlineService->notifyDemandEventToMaster((int)$_SESSION['user']['id'], $updated, 'Demanda atualizada', 'Uma demanda foi atualizada no painel Master.', 'demanda_atualizada_master');
         $this->deadlineService->notifyDemandUpdatedToEmployee((int)$payload['data']['funcionario_id'], $updated);
         $this->logAction('update', 'demandas', $id, 'Demanda atualizada pelo Master');

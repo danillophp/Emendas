@@ -116,6 +116,7 @@ CREATE TABLE `demandas_historico` (
   `demanda_id` BIGINT UNSIGNED NOT NULL,
   `usuario_id` INT UNSIGNED NULL,
   `usuario_nome` VARCHAR(150) NOT NULL,
+  `acao` VARCHAR(50) NOT NULL DEFAULT 'status_change',
   `status_anterior` VARCHAR(40) NULL,
   `status_novo` VARCHAR(40) NOT NULL,
   `observacao` TEXT NULL,

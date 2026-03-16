@@ -10,6 +10,11 @@ class Demand
     public const PROCESS_TYPES = ['prestacao_de_conta', 'cadastro_de_emenda'];
     public const AMENDMENT_TYPES = ['federal', 'estadual', 'municipal'];
 
+    public const HISTORY_ACTION_CREATE = 'create';
+    public const HISTORY_ACTION_EDIT = 'edit';
+    public const HISTORY_ACTION_STATUS_CHANGE = 'status_change';
+    public const HISTORY_ACTION_EMPLOYEE_NOTE = 'employee_note';
+
     public function countFiltered(array $filters = []): int
     {
         [$where, $params] = $this->buildFilters($filters);
@@ -175,6 +180,29 @@ class Demand
 
 
 
+    public function registerHistory(
+        int $demandId,
+        ?int $userId,
+        string $userName,
+        string $action,
+        ?string $previousStatus,
+        ?string $newStatus,
+        ?string $note = null
+    ): bool {
+        $sql = 'INSERT INTO demandas_historico (demanda_id, usuario_id, usuario_nome, acao, status_anterior, status_novo, observacao)
+                VALUES (:demanda_id, :usuario_id, :usuario_nome, :acao, :status_anterior, :status_novo, :observacao)';
+
+        return Database::connection()->prepare($sql)->execute([
+            'demanda_id' => $demandId,
+            'usuario_id' => $userId,
+            'usuario_nome' => trim($userName) !== '' ? trim($userName) : 'Sistema',
+            'acao' => $action,
+            'status_anterior' => $previousStatus,
+            'status_novo' => $newStatus,
+            'observacao' => $note !== null && trim($note) !== '' ? trim($note) : null,
+        ]);
+    }
+
     public function registerEmployeeHistory(
         int $demandId,
         int $employeeId,
@@ -183,17 +211,17 @@ class Demand
         string $newStatus,
         ?string $note = null
     ): bool {
-        $sql = 'INSERT INTO demandas_historico (demanda_id, usuario_id, usuario_nome, status_anterior, status_novo, observacao)
-                VALUES (:demanda_id, :usuario_id, :usuario_nome, :status_anterior, :status_novo, :observacao)';
+        $action = $previousStatus !== $newStatus ? self::HISTORY_ACTION_STATUS_CHANGE : self::HISTORY_ACTION_EMPLOYEE_NOTE;
 
-        return Database::connection()->prepare($sql)->execute([
-            'demanda_id' => $demandId,
-            'usuario_id' => $employeeId,
-            'usuario_nome' => $employeeName,
-            'status_anterior' => $previousStatus,
-            'status_novo' => $newStatus,
-            'observacao' => $note !== null && trim($note) !== '' ? trim($note) : null,
-        ]);
+        return $this->registerHistory(
+            $demandId,
+            $employeeId,
+            $employeeName,
+            $action,
+            $previousStatus,
+            $newStatus,
+            $note
+        );
     }
 
     public function historiesByDemandIds(array $demandIds, int $limitPerDemand = 50): array

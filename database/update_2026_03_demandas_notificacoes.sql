@@ -81,6 +81,7 @@ BEGIN
             demanda_id BIGINT UNSIGNED NOT NULL,
             usuario_id INT UNSIGNED NULL,
             usuario_nome VARCHAR(150) NOT NULL,
+            acao VARCHAR(50) NOT NULL DEFAULT 'status_change',
             status_anterior VARCHAR(40) NULL,
             status_novo VARCHAR(40) NOT NULL,
             observacao TEXT NULL,
@@ -91,6 +92,17 @@ BEGIN
             CONSTRAINT fk_hist_demanda FOREIGN KEY (demanda_id) REFERENCES demandas(id) ON DELETE CASCADE,
             CONSTRAINT fk_hist_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    END IF;
+
+    SELECT COUNT(*) INTO v_exists
+      FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'demandas_historico'
+       AND COLUMN_NAME = 'acao';
+
+    IF v_exists = 0 THEN
+        ALTER TABLE demandas_historico
+          ADD COLUMN acao VARCHAR(50) NOT NULL DEFAULT 'status_change' AFTER usuario_nome;
     END IF;
 
     -- -----------------------------------------------------------------
