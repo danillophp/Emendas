@@ -64,8 +64,21 @@ class MasterController extends Controller
         $this->requireAuth('master');
         $this->deadlineService->runAutomationForMaster((int)$_SESSION['user']['id']);
         $filters = ['status'=>trim((string)($_GET['status'] ?? '')),'funcionario_id'=>trim((string)($_GET['funcionario_id'] ?? '')),'prazo_de'=>trim((string)($_GET['prazo_de'] ?? '')),'prazo_ate'=>trim((string)($_GET['prazo_ate'] ?? ''))];
-        $page = max(1, (int)($_GET['page'] ?? 1));$perPage = 10;$offset = ($page - 1) * $perPage;$total = $this->demands->countFiltered($filters);
-        $this->view('master/demands/index', ['demands'=>$this->demands->paginatedFiltered($filters,$perPage,$offset),'employees'=>$this->users->allActiveEmployees(),'filters'=>$filters,'page'=>$page,'totalPages'=>max(1,(int)ceil($total/$perPage))]);
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 10;
+        $offset = ($page - 1) * $perPage;
+        $total = $this->demands->countFiltered($filters);
+        $demands = $this->demands->paginatedFiltered($filters, $perPage, $offset);
+        $historyMap = $this->demands->historiesByDemandIds(array_map(static fn(array $d): int => (int)$d['id'], $demands));
+
+        $this->view('master/demands/index', [
+            'demands' => $demands,
+            'historyMap' => $historyMap,
+            'employees' => $this->users->allActiveEmployees(),
+            'filters' => $filters,
+            'page' => $page,
+            'totalPages' => max(1, (int)ceil($total / $perPage)),
+        ]);
     }
 
     public function createDemand(): void

@@ -85,6 +85,15 @@ class EmployeeController extends Controller
             redirect('funcionario/demandas');
         }
 
+        $this->demands->registerEmployeeHistory(
+            $demandId,
+            $employeeId,
+            (string)($_SESSION['user']['name'] ?? 'Funcionário'),
+            (string)($ownedDemand['status'] ?? 'pendente'),
+            $status,
+            $newObservation !== '' ? $newObservation : null
+        );
+
         $masterId = $this->users->findActiveMasterId();
         if ($masterId !== null) {
             $message = sprintf(

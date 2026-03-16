@@ -37,6 +37,7 @@ DROP TABLE IF EXISTS `sessoes_usuario`;
 DROP TABLE IF EXISTS `redefinicao_senha`;
 DROP TABLE IF EXISTS `logs_sistema`;
 DROP TABLE IF EXISTS `notificacoes`;
+DROP TABLE IF EXISTS `demandas_historico`;
 DROP TABLE IF EXISTS `demandas`;
 DROP TABLE IF EXISTS `usuarios`;
 
@@ -105,8 +106,29 @@ CREATE TABLE `demandas` (
     ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
+
 -- ---------------------------------------------------------
--- 3) Tabela: notificacoes
+-- 3) Tabela: demandas_historico
+-- ---------------------------------------------------------
+CREATE TABLE `demandas_historico` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `demanda_id` BIGINT UNSIGNED NOT NULL,
+  `usuario_id` INT UNSIGNED NULL,
+  `usuario_nome` VARCHAR(150) NOT NULL,
+  `status_anterior` VARCHAR(40) NULL,
+  `status_novo` VARCHAR(40) NOT NULL,
+  `observacao` TEXT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_hist_demanda_created` (`demanda_id`, `created_at`),
+  KEY `idx_hist_usuario` (`usuario_id`),
+  CONSTRAINT `fk_hist_demanda` FOREIGN KEY (`demanda_id`) REFERENCES `demandas` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_hist_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 4) Tabela: notificacoes
 -- ---------------------------------------------------------
 CREATE TABLE `notificacoes` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -130,7 +152,7 @@ CREATE TABLE `notificacoes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
--- 4) Tabela: logs_sistema
+-- 5) Tabela: logs_sistema
 -- ---------------------------------------------------------
 CREATE TABLE `logs_sistema` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -152,7 +174,7 @@ CREATE TABLE `logs_sistema` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
--- 5) Tabela: redefinicao_senha
+-- 6) Tabela: redefinicao_senha
 -- ---------------------------------------------------------
 CREATE TABLE `redefinicao_senha` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -172,7 +194,7 @@ CREATE TABLE `redefinicao_senha` (
 
 
 -- ---------------------------------------------------------
--- 6) Tabela: sessoes_usuario (auditoria de sessões)
+-- 7) Tabela: sessoes_usuario (auditoria de sessões)
 -- ---------------------------------------------------------
 CREATE TABLE `sessoes_usuario` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

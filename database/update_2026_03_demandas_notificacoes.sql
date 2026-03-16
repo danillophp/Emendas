@@ -69,6 +69,30 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Tabela notificacoes não encontrada.';
     END IF;
 
+
+    SELECT COUNT(*) INTO v_exists
+      FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'demandas_historico';
+
+    IF v_exists = 0 THEN
+        CREATE TABLE demandas_historico (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            demanda_id BIGINT UNSIGNED NOT NULL,
+            usuario_id INT UNSIGNED NULL,
+            usuario_nome VARCHAR(150) NOT NULL,
+            status_anterior VARCHAR(40) NULL,
+            status_novo VARCHAR(40) NOT NULL,
+            observacao TEXT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_hist_demanda_created (demanda_id, created_at),
+            KEY idx_hist_usuario (usuario_id),
+            CONSTRAINT fk_hist_demanda FOREIGN KEY (demanda_id) REFERENCES demandas(id) ON DELETE CASCADE,
+            CONSTRAINT fk_hist_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    END IF;
+
     -- -----------------------------------------------------------------
     -- 1) DEMANDAS: NOVOS CAMPOS E AJUSTES
     -- -----------------------------------------------------------------

@@ -65,10 +65,72 @@ $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal
   <td><span class="badge badge-status <?= e($statusClass[$demand['status']] ?? 'bg-secondary') ?>"><?= e($statusLabels[$demand['status']] ?? $demand['status']) ?></span></td>
   <td><?php if (!empty($demand['anexo_emenda'])): ?><a class="btn btn-sm btn-outline-dark" target="_blank" href="<?= url('anexos/demandas/download?demand_id=' . (int)$demand['id']) ?>">Visualizar</a><?php else: ?><span class="text-muted">-</span><?php endif; ?></td>
   <td>
+    <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#detalhes<?= (int)$demand['id'] ?>">Abrir demanda</button>
     <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editar<?= (int)$demand['id'] ?>">Editar</button>
     <form method="post" action="<?= url('master/demands/delete') ?>" class="d-inline" onsubmit="return confirm('Deseja remover esta demanda?');"><input type="hidden" name="_csrf" value="<?= csrf_token() ?>"><input type="hidden" name="id" value="<?= (int)$demand['id'] ?>"><button class="btn btn-sm btn-danger">Excluir</button></form>
   </td>
 </tr>
+
+
+<div class="modal fade" id="detalhes<?= (int)$demand['id'] ?>" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalhes da demanda #<?= (int)$demand['id'] ?></h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-3">
+          <div class="col-md-4"><small class="text-muted d-block">Emenda</small><strong><?= e($demand['emenda']) ?></strong></div>
+          <div class="col-md-4"><small class="text-muted d-block">Nome do político</small><strong><?= e(trim((string)($demand['nome_politico'] ?? '')) !== '' ? $demand['nome_politico'] : 'Não informado') ?></strong></div>
+          <div class="col-md-4"><small class="text-muted d-block">Número do processo SEI</small><strong><?= e(trim((string)($demand['numero_processo_sei'] ?? '')) !== '' ? $demand['numero_processo_sei'] : 'Não informado') ?></strong></div>
+          <div class="col-md-4"><small class="text-muted d-block">Tipo de processo</small><strong><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?></strong></div>
+          <div class="col-md-4"><small class="text-muted d-block">Tipo de emenda</small><strong><?= e($amendmentLabels[$demand['tipo_emenda']] ?? (($demand['tipo_emenda'] ?? '') === 'parlamentar' ? 'Federal' : $demand['tipo_emenda'])) ?></strong></div>
+          <div class="col-md-4"><small class="text-muted d-block">Status atual</small><span class="badge badge-status <?= e($statusClass[$demand['status']] ?? 'bg-secondary') ?>"><?= e($statusLabels[$demand['status']] ?? $demand['status']) ?></span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Data limite do funcionário</small><strong><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></strong></div>
+          <div class="col-md-4"><small class="text-muted d-block">Data final administrativa</small><strong><?= e(date('d/m/Y', strtotime($demand['data_cadastro_emenda']))) ?></strong></div>
+          <div class="col-md-4"><small class="text-muted d-block">Última atualização</small><strong><?= e(date('d/m/Y H:i', strtotime($demand['data_ultima_atualizacao'] ?? $demand['updated_at'] ?? $demand['created_at']))) ?></strong></div>
+          <div class="col-md-6"><small class="text-muted d-block">Funcionário responsável</small><strong><?= e($demand['funcionario_nome']) ?></strong></div>
+          <div class="col-md-6"><small class="text-muted d-block">Anexo</small><?php if (!empty($demand['anexo_emenda'])): ?><a target="_blank" href="<?= url('anexos/demandas/download?demand_id=' . (int)$demand['id']) ?>">Visualizar anexo</a><?php else: ?><span class="text-muted">Sem anexo</span><?php endif; ?></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Observações registradas</label>
+          <div class="border rounded p-2 bg-light small"><?= nl2br(e(trim((string)($demand['observacao'] ?? 'Sem observações do Master.')))) ?></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Observações do funcionário</label>
+          <div class="border rounded p-2 bg-light small"><?= nl2br(e(trim((string)($demand['observacao_funcionario'] ?? 'Sem observações do funcionário.')))) ?></div>
+        </div>
+
+        <div>
+          <label class="form-label fw-semibold">Histórico de atualizações do funcionário</label>
+          <?php $historyRows = $historyMap[(int)$demand['id']] ?? []; ?>
+          <?php if (!empty($historyRows)): ?>
+            <div class="list-group list-group-flush border rounded">
+              <?php foreach ($historyRows as $history): ?>
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between flex-wrap gap-2">
+                    <strong><?= e($history['usuario_nome_atual'] ?? $history['usuario_nome'] ?? 'Funcionário') ?></strong>
+                    <small class="text-muted"><?= e(date('d/m/Y H:i', strtotime($history['created_at']))) ?></small>
+                  </div>
+                  <div class="small mt-1">Status: <span class="text-muted"><?= e($history['status_anterior'] ?? '-') ?></span> → <strong><?= e($history['status_novo'] ?? '-') ?></strong></div>
+                  <div class="small mt-1">Observação: <?= e(trim((string)($history['observacao'] ?? '')) !== '' ? $history['observacao'] : 'Sem observação nesta atualização.') ?></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <div class="alert alert-light border mb-0">Ainda não há histórico de alterações feito por funcionário para esta demanda.</div>
+          <?php endif; ?>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="modal fade" id="editar<?= (int)$demand['id'] ?>" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Editar demanda</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>

@@ -173,6 +173,74 @@ class Demand
         return $stmt->fetchAll();
     }
 
+
+
+    public function registerEmployeeHistory(
+        int $demandId,
+        int $employeeId,
+        string $employeeName,
+        string $previousStatus,
+        string $newStatus,
+        ?string $note = null
+    ): bool {
+        $sql = 'INSERT INTO demandas_historico (demanda_id, usuario_id, usuario_nome, status_anterior, status_novo, observacao)
+                VALUES (:demanda_id, :usuario_id, :usuario_nome, :status_anterior, :status_novo, :observacao)';
+
+        return Database::connection()->prepare($sql)->execute([
+            'demanda_id' => $demandId,
+            'usuario_id' => $employeeId,
+            'usuario_nome' => $employeeName,
+            'status_anterior' => $previousStatus,
+            'status_novo' => $newStatus,
+            'observacao' => $note !== null && trim($note) !== '' ? trim($note) : null,
+        ]);
+    }
+
+    public function historiesByDemandIds(array $demandIds, int $limitPerDemand = 50): array
+    {
+        $demandIds = array_values(array_unique(array_map('intval', $demandIds)));
+        $demandIds = array_filter($demandIds, static fn (int $id): bool => $id > 0);
+
+        if ($demandIds === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+        foreach ($demandIds as $i => $id) {
+            $key = ':d' . $i;
+            $placeholders[] = $key;
+            $params[$key] = $id;
+        }
+
+        $sql = 'SELECT h.*, u.nome_completo AS usuario_nome_atual
+                FROM demandas_historico h
+                LEFT JOIN usuarios u ON u.id = h.usuario_id
+                WHERE h.demanda_id IN (' . implode(',', $placeholders) . ')
+                ORDER BY h.created_at DESC, h.id DESC';
+
+        $stmt = Database::connection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, \PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $demandId = (int)$row['demanda_id'];
+            if (!isset($grouped[$demandId])) {
+                $grouped[$demandId] = [];
+            }
+            if (count($grouped[$demandId]) >= $limitPerDemand) {
+                continue;
+            }
+            $grouped[$demandId][] = $row;
+        }
+
+        return $grouped;
+    }
+
     private function buildFilters(array $filters): array
     {
         $clauses = [];

@@ -84,12 +84,13 @@ Regras de credencial inicial:
 ## Regras de demanda
 Status suportados:
 - `pendente`
-- `cadastrado`
+- `cadastrada`
+- `concluído`
 
 Fluxo:
 1. Master cria e atribui a demanda.
 2. Funcionário visualiza no painel.
-3. Funcionário atualiza o status entre `pendente` e `cadastrado`.
+3. Funcionário atualiza o status entre `pendente`, `cadastrada` e `concluído`.
 4. Sistema registra atualização e notifica o Master.
 5. Sistema alerta Master quando faltar <=24h para o prazo de resposta.
 
