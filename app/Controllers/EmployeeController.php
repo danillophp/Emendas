@@ -123,6 +123,18 @@ class EmployeeController extends Controller
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
         ]);
 
+        if ($newObservation !== '') {
+            $this->logs->create([
+                'usuario_id' => $employeeId,
+                'acao' => 'include_observation',
+                'entidade' => 'demandas',
+                'entidade_id' => $demandId,
+                'descricao' => 'Funcionário incluiu observação de andamento na demanda.',
+                'ip' => client_ip(),
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            ]);
+        }
+
         flash('success', 'Demanda atualizada com sucesso.');
         redirect('funcionario/demandas');
     }

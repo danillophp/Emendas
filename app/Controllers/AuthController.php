@@ -53,6 +53,12 @@ class AuthController extends Controller
             redirect('login');
         }
 
+        $role = (string)($user['perfil'] ?? '');
+        if (!in_array($role, ['master', 'funcionario'], true)) {
+            flash('error', 'Perfil de usuário inválido para acesso ao sistema.');
+            redirect('login');
+        }
+
         session_regenerate_id(true);
         $phpSessionId = session_id();
 
@@ -69,16 +75,23 @@ class AuthController extends Controller
                 $_SERVER['HTTP_USER_AGENT'] ?? null
             );
 
+            // Política de segurança: funcionário só pode manter 1 sessão ativa.
+            if ($role === 'funcionario') {
+                $this->users->deactivateSessionsExcept((int)$user['id'], $phpSessionId);
+            }
+
         }
 
         $_SESSION['user'] = [
             'id' => (int)$user['id'],
             'name' => $user['nome_completo'],
-            'role' => $user['perfil'],
+            'role' => $role,
             'first_login' => (bool)$user['primeiro_login'],
             'session_token' => $sessionToken,
             'session_id' => $phpSessionId,
         ];
+
+        rotate_csrf_token();
 
         $this->logs->create([
             'usuario_id' => (int)$user['id'],
@@ -90,12 +103,12 @@ class AuthController extends Controller
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
         ]);
 
-        if ((bool)$user['primeiro_login'] && $user['perfil'] === 'funcionario') {
+        if ((bool)$user['primeiro_login'] && $role === 'funcionario') {
             flash('success', 'Primeiro acesso detectado. Defina sua nova senha para continuar.');
             redirect('change-password');
         }
 
-        redirect($user['perfil'] === 'master' ? 'master/dashboard' : 'funcionario/dashboard');
+        redirect($role === 'master' ? 'master/dashboard' : 'funcionario/dashboard');
     }
 
     public function showChangePassword(): void
@@ -135,6 +148,7 @@ class AuthController extends Controller
 
         $this->users->updatePassword((int)$_SESSION['user']['id'], password_hash($password, PASSWORD_DEFAULT), false);
         $_SESSION['user']['first_login'] = false;
+        rotate_csrf_token();
 
         flash('success', 'Senha alterada com sucesso.');
         redirect($_SESSION['user']['role'] === 'master' ? 'master/dashboard' : 'funcionario/dashboard');

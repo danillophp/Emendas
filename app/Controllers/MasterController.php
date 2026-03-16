@@ -124,6 +124,12 @@ class MasterController extends Controller
         $this->deadlineService->notifyDemandEventToMaster((int)$_SESSION['user']['id'], $updated, 'Demanda atualizada', 'Uma demanda foi atualizada no painel Master.', 'demanda_atualizada_master');
         $this->deadlineService->notifyDemandUpdatedToEmployee((int)$payload['data']['funcionario_id'], $updated);
         $this->logAction('update', 'demandas', $id, 'Demanda atualizada pelo Master');
+        if ((string)($current['status'] ?? '') !== (string)($dataToPersist['status'] ?? '')) {
+            $this->logAction('update_status', 'demandas', $id, sprintf('Master alterou status de "%s" para "%s".', (string)($current['status'] ?? '-'), (string)($dataToPersist['status'] ?? '-')));
+        }
+        if ((string)($current['observacao'] ?? '') !== (string)($dataToPersist['observacao'] ?? '')) {
+            $this->logAction('include_observation', 'demandas', $id, 'Master atualizou observação da demanda.');
+        }
         if (is_string($uploadOriginalName) && $uploadOriginalName !== '') {
             $this->logAction('upload_anexo', 'demandas', $id, 'Substituição de anexo: ' . $uploadOriginalName);
         }

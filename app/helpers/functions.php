@@ -133,6 +133,12 @@ function verify_csrf(?string $token): bool
     return $token !== null && isset($_SESSION['_csrf']) && hash_equals($_SESSION['_csrf'], $token);
 }
 
+function rotate_csrf_token(): string
+{
+    $_SESSION['_csrf'] = bin2hex(random_bytes(32));
+    return $_SESSION['_csrf'];
+}
+
 function validate_required(array $data, array $fields): array
 {
     $errors = [];
