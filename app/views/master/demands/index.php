@@ -31,6 +31,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
   <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
   <div class="col-md-4"><input class="form-control" name="emenda" placeholder="Nome da emenda" required></div>
   <div class="col-md-4"><input class="form-control" name="nome_politico" placeholder="Nome do político (opcional)"></div>
+  <div class="col-md-4"><input class="form-control" name="numero_processo_sei" placeholder="Número do processo SEI (opcional)"></div>
   <div class="col-md-4"><select class="form-select" name="tipo_processo" required><option value="">Tipo de processo</option><?php foreach ($processLabels as $k=>$l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
   <div class="col-md-3"><select class="form-select" name="tipo_emenda" required><option value="">Tipo de emenda</option><?php foreach ($amendmentLabels as $k=>$l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
   <div class="col-md-4">
@@ -55,7 +56,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
 <tbody id="masterDemandsBody">
 <?php foreach ($demands as $demand): ?>
 <tr>
-  <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?> • <?= e($amendmentLabels[$demand['tipo_emenda']] ?? $demand['tipo_emenda']) ?></small></td>
+  <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?> • <?= e($amendmentLabels[$demand['tipo_emenda']] ?? $demand['tipo_emenda']) ?></small><br><small class="text-muted">SEI: <?= e(trim((string)($demand['numero_processo_sei'] ?? '')) !== '' ? $demand['numero_processo_sei'] : 'Não informado') ?></small></td>
   <td><?= e($demand['funcionario_nome']) ?></td>
   <td>
     <div><small class="text-muted d-block">Prazo funcionário:</small><strong><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></strong></div>
@@ -75,6 +76,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
       <input type="hidden" name="_csrf" value="<?= csrf_token() ?>"><input type="hidden" name="id" value="<?= (int)$demand['id'] ?>">
       <div class="col-md-6"><label class="form-label">Nome da emenda</label><input class="form-control" name="emenda" value="<?= e($demand['emenda']) ?>" required></div>
       <div class="col-md-6"><label class="form-label">Nome do político <small class="text-muted">(opcional)</small></label><input class="form-control" name="nome_politico" value="<?= e($demand['nome_politico']) ?>"></div>
+      <div class="col-md-6"><label class="form-label">Número do processo SEI <small class="text-muted">(opcional)</small></label><input class="form-control" name="numero_processo_sei" value="<?= e($demand['numero_processo_sei'] ?? '') ?>"></div>
       <div class="col-md-4"><label class="form-label">Tipo de processo</label><select class="form-select" name="tipo_processo" required><?php foreach ($processLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['tipo_processo']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
       <div class="col-md-4"><label class="form-label">Tipo de emenda</label><select class="form-select" name="tipo_emenda" required><?php foreach ($amendmentLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['tipo_emenda']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
       <div class="col-md-4"><label class="form-label">Status</label><select class="form-select" name="status" required><?php foreach ($statusLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['status']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>

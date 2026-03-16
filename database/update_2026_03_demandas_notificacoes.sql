@@ -73,6 +73,18 @@ BEGIN
     -- 1) DEMANDAS: NOVOS CAMPOS E AJUSTES
     -- -----------------------------------------------------------------
 
+    -- 1.0 numero_processo_sei
+    SELECT COUNT(*) INTO v_exists
+      FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'demandas'
+       AND COLUMN_NAME = 'numero_processo_sei';
+
+    IF v_exists = 0 THEN
+        ALTER TABLE demandas
+          ADD COLUMN numero_processo_sei VARCHAR(80) NULL AFTER nome_politico;
+    END IF;
+
     -- 1.1 tipo_processo
     SELECT COUNT(*) INTO v_exists
       FROM information_schema.COLUMNS

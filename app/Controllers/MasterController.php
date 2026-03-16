@@ -177,6 +177,7 @@ class MasterController extends Controller
         $data = [
             'emenda' => trim((string)($_POST['emenda'] ?? '')),
             'nome_politico' => trim((string)($_POST['nome_politico'] ?? '')),
+            'numero_processo_sei' => trim((string)($_POST['numero_processo_sei'] ?? '')),
             'tipo_processo' => trim((string)($_POST['tipo_processo'] ?? '')),
             'tipo_emenda' => trim((string)($_POST['tipo_emenda'] ?? '')),
             'data_prazo_resposta' => trim((string)($_POST['data_prazo_resposta'] ?? '')),
@@ -192,6 +193,8 @@ class MasterController extends Controller
         if (!in_array($data['tipo_processo'], Demand::PROCESS_TYPES, true)) { $errors[] = 'Tipo de processo inválido.'; }
         if (!in_array($data['tipo_emenda'], Demand::AMENDMENT_TYPES, true)) { $errors[] = 'Tipo de emenda inválido.'; }
         if (!in_array($data['status'], Demand::STATUS_ALLOWED, true)) { $errors[] = 'Status da demanda inválido.'; }
+
+        if ($data['numero_processo_sei'] !== '' && mb_strlen($data['numero_processo_sei']) > 80) { $errors[] = 'Número do processo SEI deve ter no máximo 80 caracteres.'; }
         if ($data['funcionario_id'] <= 0 || !$this->users->existsEmployeeById($data['funcionario_id'])) { $errors[] = 'Selecione um funcionário válido para a demanda.'; }
 
         $prazoTimestamp = strtotime($data['data_prazo_resposta']);

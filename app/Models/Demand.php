@@ -42,9 +42,9 @@ class Demand
 
     public function create(array $data): int
     {
-        $sql = 'INSERT INTO demandas (emenda, nome_politico, tipo_processo, tipo_emenda, data_prazo_resposta, data_cadastro_emenda,
+        $sql = 'INSERT INTO demandas (emenda, nome_politico, numero_processo_sei, tipo_processo, tipo_emenda, data_prazo_resposta, data_cadastro_emenda,
                     observacao, anexo_emenda, anexo_nome_original, funcionario_id, status, criado_por, data_ultima_atualizacao)
-                VALUES (:emenda, :nome_politico, :tipo_processo, :tipo_emenda, :data_prazo_resposta, :data_cadastro_emenda,
+                VALUES (:emenda, :nome_politico, :numero_processo_sei, :tipo_processo, :tipo_emenda, :data_prazo_resposta, :data_cadastro_emenda,
                     :observacao, :anexo_emenda, :anexo_nome_original, :funcionario_id, :status, :criado_por, NOW())';
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($data);
@@ -56,6 +56,7 @@ class Demand
         $sql = 'UPDATE demandas
                 SET emenda = :emenda,
                     nome_politico = :nome_politico,
+                    numero_processo_sei = :numero_processo_sei,
                     tipo_processo = :tipo_processo,
                     tipo_emenda = :tipo_emenda,
                     data_prazo_resposta = :data_prazo_resposta,

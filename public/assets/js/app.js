@@ -113,7 +113,7 @@ function renderMasterDemands(demands, masterDemandsUrl, attachmentDownloadUrl) {
   if (!tbody) return;
   tbody.innerHTML = demands.map((d) => `
     <tr>
-      <td><strong>${escapeHtml(d.emenda || '')}</strong><br><small class="text-muted">${escapeHtml(d.funcionario_nome || '-')}</small></td>
+      <td><strong>${escapeHtml(d.emenda || '')}</strong><br><small class="text-muted">${escapeHtml(d.funcionario_nome || '-')}</small><br><small class="text-muted">SEI: ${escapeHtml((d.numero_processo_sei || "").trim() || "Não informado")}</small></td>
       <td>${escapeHtml(d.funcionario_nome || '-')}</td>
       <td>
         <small class="text-muted d-block">Prazo funcionário</small>${formatDate(d.data_prazo_resposta)}
