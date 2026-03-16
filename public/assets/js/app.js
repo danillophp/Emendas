@@ -68,7 +68,9 @@ function initRealtimePanelSync() {
       }
 
       if (payload.role === 'master') {
-        renderMasterDemands(payload.demands || [], masterDemandsUrl, attachmentDownloadUrl);
+        // Não reescrever a tabela de demandas no painel Master: a listagem usa
+        // HTML/Bootstrap/DataTables com modais e formulários CSRF renderizados no backend.
+        // Recriar linhas via polling remove ações administrativas (Editar/Excluir).
         renderMasterStats(payload.stats || {});
         renderMasterUpcoming(payload.upcoming || []);
         renderMasterDashboardNotifications(payload.notifications || []);
