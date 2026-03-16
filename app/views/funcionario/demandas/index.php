@@ -17,7 +17,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
     <tbody id="employeeDemandsBody">
       <?php foreach ($demands as $demand): ?>
       <tr>
-        <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e($demand['nome_politico']) ?></small></td>
+        <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e(trim((string)($demand['nome_politico'] ?? '')) !== '' ? $demand['nome_politico'] : 'Não informado') ?></small></td>
         <td><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?> / <?= e($amendmentLabels[$demand['tipo_emenda']] ?? $demand['tipo_emenda']) ?></td>
         <td><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></td>
         <td><span class="badge badge-status <?= e($statusClass[$demand['status']] ?? 'bg-secondary') ?>"><?= e($statusLabels[$demand['status']] ?? $demand['status']) ?></span></td>
@@ -40,7 +40,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
                 <input type="hidden" name="id" value="<?= (int)$demand['id'] ?>">
 
                 <div class="row g-3 mb-3">
-                  <div class="col-md-6"><small class="text-muted d-block">Nome do político</small><strong><?= e($demand['nome_politico']) ?></strong></div>
+                  <div class="col-md-6"><small class="text-muted d-block">Nome do político</small><strong><?= e(trim((string)($demand['nome_politico'] ?? '')) !== '' ? $demand['nome_politico'] : 'Não informado') ?></strong></div>
                   <div class="col-md-6"><small class="text-muted d-block">Prazo da demanda</small><strong><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></strong></div>
                   <div class="col-md-6"><small class="text-muted d-block">Tipo de processo</small><strong><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?></strong></div>
                   <div class="col-md-6"><small class="text-muted d-block">Tipo de emenda</small><strong><?= e($amendmentLabels[$demand['tipo_emenda']] ?? $demand['tipo_emenda']) ?></strong></div>

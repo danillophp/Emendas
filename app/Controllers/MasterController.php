@@ -188,7 +188,7 @@ class MasterController extends Controller
             'anexo_nome_original' => trim((string)($_POST['anexo_nome_original'] ?? '')),
         ];
 
-        $errors = validate_required($data, ['emenda', 'nome_politico', 'tipo_processo', 'tipo_emenda', 'data_prazo_resposta', 'data_cadastro_emenda']);
+        $errors = validate_required($data, ['emenda', 'tipo_processo', 'tipo_emenda', 'data_prazo_resposta', 'data_cadastro_emenda']);
         if (!in_array($data['tipo_processo'], Demand::PROCESS_TYPES, true)) { $errors[] = 'Tipo de processo inválido.'; }
         if (!in_array($data['tipo_emenda'], Demand::AMENDMENT_TYPES, true)) { $errors[] = 'Tipo de emenda inválido.'; }
         if (!in_array($data['status'], Demand::STATUS_ALLOWED, true)) { $errors[] = 'Status da demanda inválido.'; }

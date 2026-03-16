@@ -75,7 +75,7 @@ CREATE TABLE `usuarios` (
 CREATE TABLE `demandas` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `emenda` VARCHAR(180) NOT NULL,
-  `nome_politico` VARCHAR(150) NOT NULL,
+  `nome_politico` VARCHAR(150) NULL,
   `tipo_processo` ENUM('prestacao_de_conta','cadastro_de_emenda') NOT NULL,
   `tipo_emenda` ENUM('parlamentar','estadual','municipal') NOT NULL,
   `data_prazo_resposta` DATETIME NOT NULL,

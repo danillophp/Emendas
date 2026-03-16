@@ -30,7 +30,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
 <form method="post" action="<?= url('master/demands/create') ?>" class="row g-3" enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
   <div class="col-md-4"><input class="form-control" name="emenda" placeholder="Nome da emenda" required></div>
-  <div class="col-md-4"><input class="form-control" name="nome_politico" placeholder="Nome do político" required></div>
+  <div class="col-md-4"><input class="form-control" name="nome_politico" placeholder="Nome do político (opcional)"></div>
   <div class="col-md-4"><select class="form-select" name="tipo_processo" required><option value="">Tipo de processo</option><?php foreach ($processLabels as $k=>$l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
   <div class="col-md-3"><select class="form-select" name="tipo_emenda" required><option value="">Tipo de emenda</option><?php foreach ($amendmentLabels as $k=>$l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
   <div class="col-md-4">
@@ -74,7 +74,7 @@ $amendmentLabels = ['parlamentar' => 'Parlamentar', 'estadual' => 'Estadual', 'm
     <form method="post" action="<?= url('master/demands/update') ?>" enctype="multipart/form-data"><div class="modal-body row g-3">
       <input type="hidden" name="_csrf" value="<?= csrf_token() ?>"><input type="hidden" name="id" value="<?= (int)$demand['id'] ?>">
       <div class="col-md-6"><label class="form-label">Nome da emenda</label><input class="form-control" name="emenda" value="<?= e($demand['emenda']) ?>" required></div>
-      <div class="col-md-6"><label class="form-label">Nome do político</label><input class="form-control" name="nome_politico" value="<?= e($demand['nome_politico']) ?>" required></div>
+      <div class="col-md-6"><label class="form-label">Nome do político <small class="text-muted">(opcional)</small></label><input class="form-control" name="nome_politico" value="<?= e($demand['nome_politico']) ?>"></div>
       <div class="col-md-4"><label class="form-label">Tipo de processo</label><select class="form-select" name="tipo_processo" required><?php foreach ($processLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['tipo_processo']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
       <div class="col-md-4"><label class="form-label">Tipo de emenda</label><select class="form-select" name="tipo_emenda" required><?php foreach ($amendmentLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['tipo_emenda']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
       <div class="col-md-4"><label class="form-label">Status</label><select class="form-select" name="status" required><?php foreach ($statusLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['status']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
