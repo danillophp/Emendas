@@ -239,13 +239,13 @@ class MasterController extends Controller
         ];
 
         $errors = validate_required($data, ['emenda', 'tipo_processo', 'tipo_emenda', 'data_prazo_resposta', 'data_cadastro_emenda']);
-        if (!in_array($data['tipo_processo'], Demand::PROCESS_TYPES, true)) { $errors[] = 'Tipo de processo inválido.'; }
+        if (!in_array($data['tipo_processo'], Demand::PROCESS_TYPES, true)) { $errors[] = 'Tipo de demanda inválido.'; }
 
         if ($data['tipo_processo'] === 'outros') {
             if ($data['tipo_processo_outros'] === '') {
-                $errors[] = 'Informe o tipo de processo quando selecionar "Outros".';
+                $errors[] = 'Informe o tipo de demanda quando selecionar "Outros".';
             } elseif (mb_strlen($data['tipo_processo_outros']) > 255) {
-                $errors[] = 'O tipo de processo personalizado deve ter no máximo 255 caracteres.';
+                $errors[] = 'O tipo de demanda personalizado deve ter no máximo 255 caracteres.';
             }
         } else {
             $data['tipo_processo_outros'] = null;
