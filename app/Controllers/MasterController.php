@@ -132,7 +132,7 @@ class MasterController extends Controller
         $updated = $this->demands->findById($id) ?? ($payload['data'] + ['id' => $id]);
 
         $changedFields = [];
-        foreach (['emenda','nome_politico','numero_processo_sei','tipo_processo','tipo_emenda','data_prazo_resposta','data_cadastro_emenda','funcionario_id'] as $field) {
+        foreach (['emenda','nome_politico','numero_processo_sei','tipo_processo','tipo_processo_outros','tipo_emenda','data_prazo_resposta','data_cadastro_emenda','funcionario_id'] as $field) {
             if ((string)($current[$field] ?? '') !== (string)($dataToPersist[$field] ?? '')) {
                 $changedFields[] = $field;
             }
@@ -227,6 +227,7 @@ class MasterController extends Controller
             'nome_politico' => trim((string)($_POST['nome_politico'] ?? '')),
             'numero_processo_sei' => trim((string)($_POST['numero_processo_sei'] ?? '')),
             'tipo_processo' => trim((string)($_POST['tipo_processo'] ?? '')),
+            'tipo_processo_outros' => trim((string)($_POST['tipo_processo_outros'] ?? '')),
             'tipo_emenda' => trim((string)($_POST['tipo_emenda'] ?? '')),
             'data_prazo_resposta' => trim((string)($_POST['data_prazo_resposta'] ?? '')),
             'data_cadastro_emenda' => trim((string)($_POST['data_cadastro_emenda'] ?? '')),
@@ -239,10 +240,21 @@ class MasterController extends Controller
 
         $errors = validate_required($data, ['emenda', 'tipo_processo', 'tipo_emenda', 'data_prazo_resposta', 'data_cadastro_emenda']);
         if (!in_array($data['tipo_processo'], Demand::PROCESS_TYPES, true)) { $errors[] = 'Tipo de processo inválido.'; }
+
+        if ($data['tipo_processo'] === 'outros') {
+            if ($data['tipo_processo_outros'] === '') {
+                $errors[] = 'Informe o tipo de processo quando selecionar "Outros".';
+            } elseif (mb_strlen($data['tipo_processo_outros']) > 255) {
+                $errors[] = 'O tipo de processo personalizado deve ter no máximo 255 caracteres.';
+            }
+        } else {
+            $data['tipo_processo_outros'] = null;
+        }
         if (!in_array($data['tipo_emenda'], Demand::AMENDMENT_TYPES, true)) { $errors[] = 'Tipo de emenda inválido.'; }
         if (!in_array($data['status'], Demand::STATUS_ALLOWED, true)) { $errors[] = 'Status da demanda inválido.'; }
 
-        if ($data['numero_processo_sei'] !== '' && mb_strlen($data['numero_processo_sei']) > 80) { $errors[] = 'Número do processo SEI deve ter no máximo 80 caracteres.'; }
+        if ($data['numero_processo_sei'] === '') { $data['numero_processo_sei'] = null; }
+        if ($data['numero_processo_sei'] !== null && mb_strlen($data['numero_processo_sei']) > 80) { $errors[] = 'Número do processo SEI deve ter no máximo 80 caracteres.'; }
         if ($data['funcionario_id'] <= 0 || !$this->users->existsEmployeeById($data['funcionario_id'])) { $errors[] = 'Selecione um funcionário válido para a demanda.'; }
 
         $prazoTimestamp = strtotime($data['data_prazo_resposta']);

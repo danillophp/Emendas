@@ -130,8 +130,24 @@ BEGIN
 
     IF v_exists = 0 THEN
         ALTER TABLE demandas
-          ADD COLUMN tipo_processo ENUM('prestacao_de_conta','cadastro_de_emenda') NULL AFTER nome_politico;
+          ADD COLUMN tipo_processo ENUM('prestacao_de_conta','cadastro_de_emenda','demanda_administrativa','outros') NULL AFTER nome_politico;
     END IF;
+
+    -- 1.1.1 tipo_processo_outros
+    SELECT COUNT(*) INTO v_exists
+      FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'demandas'
+       AND COLUMN_NAME = 'tipo_processo_outros';
+
+    IF v_exists = 0 THEN
+        ALTER TABLE demandas
+          ADD COLUMN tipo_processo_outros VARCHAR(255) NULL AFTER tipo_processo;
+    END IF;
+
+    -- garante enum atualizado com novas opções
+    ALTER TABLE demandas
+      MODIFY COLUMN tipo_processo ENUM('prestacao_de_conta','cadastro_de_emenda','demanda_administrativa','outros') NULL;
 
     -- 1.2 tipo_emenda (normalização para ENUM do novo domínio)
     SELECT COUNT(*) INTO v_exists
@@ -287,7 +303,7 @@ BEGIN
     -- 2.5 Enforça NOT NULL nos campos mandatórios do novo fluxo
     ALTER TABLE demandas
       MODIFY COLUMN nome_politico VARCHAR(150) NULL,
-      MODIFY COLUMN tipo_processo ENUM('prestacao_de_conta','cadastro_de_emenda') NOT NULL,
+      MODIFY COLUMN tipo_processo ENUM('prestacao_de_conta','cadastro_de_emenda','demanda_administrativa','outros') NOT NULL,
       MODIFY COLUMN tipo_emenda ENUM('federal','estadual','municipal') NOT NULL,
       MODIFY COLUMN data_prazo_resposta DATETIME NOT NULL,
       MODIFY COLUMN data_cadastro_emenda DATE NOT NULL;

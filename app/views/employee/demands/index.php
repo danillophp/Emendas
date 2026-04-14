@@ -1,7 +1,7 @@
 <?php
 $statusLabels = ['pendente' => 'Pendente', 'cadastrada' => 'Cadastrada', 'concluído' => 'Concluído'];
 $statusClass = ['pendente' => 'badge-pendente', 'cadastrada' => 'badge-cadastrada', 'concluído' => 'badge-concluido'];
-$processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_emenda' => 'Cadastro de emenda'];
+$processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_emenda' => 'Cadastro de emenda', 'demanda_administrativa' => 'Demanda Administrativa', 'outros' => 'Outros'];
 $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal' => 'Municipal'];
 ?>
 
@@ -18,7 +18,7 @@ $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal
       <?php foreach ($demands as $demand): ?>
       <tr>
         <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e(trim((string)($demand['nome_politico'] ?? '')) !== '' ? $demand['nome_politico'] : 'Não informado') ?></small></td>
-        <td><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?> / <?= e($amendmentLabels[$demand['tipo_emenda']] ?? (($demand['tipo_emenda'] ?? '') === 'parlamentar' ? 'Federal' : $demand['tipo_emenda'])) ?></td>
+        <td><?= e((($demand['tipo_processo'] ?? '') === 'outros' && trim((string)($demand['tipo_processo_outros'] ?? '')) !== '') ? $demand['tipo_processo_outros'] : ($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo'])) ?> / <?= e($amendmentLabels[$demand['tipo_emenda']] ?? (($demand['tipo_emenda'] ?? '') === 'parlamentar' ? 'Federal' : $demand['tipo_emenda'])) ?></td>
         <td><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></td>
         <td><span class="badge badge-status <?= e($statusClass[$demand['status']] ?? 'bg-secondary') ?>"><?= e($statusLabels[$demand['status']] ?? $demand['status']) ?></span></td>
         <td><?php if (!empty($demand['anexo_emenda'])): ?><a target="_blank" href="<?= url('anexos/demandas/download?demand_id=' . (int)$demand['id']) ?>">Abrir</a><?php else: ?>-<?php endif; ?></td>
@@ -43,7 +43,7 @@ $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal
                   <div class="col-md-6"><small class="text-muted d-block">Nome do político</small><strong><?= e(trim((string)($demand['nome_politico'] ?? '')) !== '' ? $demand['nome_politico'] : 'Não informado') ?></strong></div>
                   <div class="col-md-6"><small class="text-muted d-block">Número do processo SEI</small><strong><?= e(trim((string)($demand['numero_processo_sei'] ?? '')) !== '' ? $demand['numero_processo_sei'] : 'Não informado') ?></strong></div>
                   <div class="col-md-6"><small class="text-muted d-block">Prazo da demanda</small><strong><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></strong></div>
-                  <div class="col-md-6"><small class="text-muted d-block">Tipo de processo</small><strong><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?></strong></div>
+                  <div class="col-md-6"><small class="text-muted d-block">Tipo de processo</small><strong><?= e((($demand['tipo_processo'] ?? '') === 'outros' && trim((string)($demand['tipo_processo_outros'] ?? '')) !== '') ? $demand['tipo_processo_outros'] : ($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo'])) ?></strong></div>
                   <div class="col-md-6"><small class="text-muted d-block">Tipo de emenda</small><strong><?= e($amendmentLabels[$demand['tipo_emenda']] ?? (($demand['tipo_emenda'] ?? '') === 'parlamentar' ? 'Federal' : $demand['tipo_emenda'])) ?></strong></div>
                 </div>
 

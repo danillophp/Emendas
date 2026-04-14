@@ -1,7 +1,7 @@
 <?php
 $statusLabels = ['pendente' => 'Pendente', 'cadastrada' => 'Cadastrada', 'concluído' => 'Concluído'];
 $statusClass = ['pendente' => 'badge-pendente', 'cadastrada' => 'badge-cadastrada', 'concluído' => 'badge-concluido'];
-$processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_emenda' => 'Cadastro de emenda'];
+$processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_emenda' => 'Cadastro de emenda', 'demanda_administrativa' => 'Demanda Administrativa', 'outros' => 'Outros'];
 $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal' => 'Municipal'];
 $historyActionLabels = ['create' => 'Criação da demanda','edit' => 'Edição da demanda','status_change' => 'Alteração de status','employee_note' => 'Observação do funcionário'];
 ?>
@@ -33,7 +33,8 @@ $historyActionLabels = ['create' => 'Criação da demanda','edit' => 'Edição d
   <div class="col-md-4"><input class="form-control" name="emenda" placeholder="Nome da emenda" required></div>
   <div class="col-md-4"><input class="form-control" name="nome_politico" placeholder="Nome do político (opcional)"></div>
   <div class="col-md-4"><input class="form-control" name="numero_processo_sei" placeholder="Número do processo SEI (opcional)"></div>
-  <div class="col-md-4"><select class="form-select" name="tipo_processo" required><option value="">Tipo de processo</option><?php foreach ($processLabels as $k=>$l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
+  <div class="col-md-4"><select class="form-select js-tipo-processo" name="tipo_processo" required><option value="">Tipo de processo</option><?php foreach ($processLabels as $k=>$l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
+  <div class="col-md-4 d-none js-tipo-processo-outros-wrap"><input class="form-control js-tipo-processo-outros" name="tipo_processo_outros" placeholder="Informe o tipo de processo" maxlength="255"></div>
   <div class="col-md-3"><select class="form-select" name="tipo_emenda" required><option value="">Tipo de emenda</option><?php foreach ($amendmentLabels as $k=>$l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select></div>
   <div class="col-md-4">
     <label class="form-label fw-semibold mb-1">Data limite para o funcionário resolver a demanda</label>
@@ -57,7 +58,7 @@ $historyActionLabels = ['create' => 'Criação da demanda','edit' => 'Edição d
 <tbody id="masterDemandsBody">
 <?php foreach ($demands as $demand): ?>
 <tr>
-  <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?> • <?= e($amendmentLabels[$demand['tipo_emenda']] ?? (($demand['tipo_emenda'] ?? '') === 'parlamentar' ? 'Federal' : $demand['tipo_emenda'])) ?></small><br><small class="text-muted">SEI: <?= e(trim((string)($demand['numero_processo_sei'] ?? '')) !== '' ? $demand['numero_processo_sei'] : 'Não informado') ?></small></td>
+  <td><strong><?= e($demand['emenda']) ?></strong><br><small class="text-muted"><?= e((($demand['tipo_processo'] ?? '') === 'outros' && trim((string)($demand['tipo_processo_outros'] ?? '')) !== '') ? $demand['tipo_processo_outros'] : ($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo'])) ?> • <?= e($amendmentLabels[$demand['tipo_emenda']] ?? (($demand['tipo_emenda'] ?? '') === 'parlamentar' ? 'Federal' : $demand['tipo_emenda'])) ?></small><br><small class="text-muted">SEI: <?= e(trim((string)($demand['numero_processo_sei'] ?? '')) !== '' ? $demand['numero_processo_sei'] : 'Não informado') ?></small></td>
   <td><?= e($demand['funcionario_nome']) ?></td>
   <td>
     <div><small class="text-muted d-block">Prazo funcionário:</small><strong><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></strong></div>
@@ -85,7 +86,7 @@ $historyActionLabels = ['create' => 'Criação da demanda','edit' => 'Edição d
           <div class="col-md-4"><small class="text-muted d-block">Emenda</small><strong><?= e($demand['emenda']) ?></strong></div>
           <div class="col-md-4"><small class="text-muted d-block">Nome do político</small><strong><?= e(trim((string)($demand['nome_politico'] ?? '')) !== '' ? $demand['nome_politico'] : 'Não informado') ?></strong></div>
           <div class="col-md-4"><small class="text-muted d-block">Número do processo SEI</small><strong><?= e(trim((string)($demand['numero_processo_sei'] ?? '')) !== '' ? $demand['numero_processo_sei'] : 'Não informado') ?></strong></div>
-          <div class="col-md-4"><small class="text-muted d-block">Tipo de processo</small><strong><?= e($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo']) ?></strong></div>
+          <div class="col-md-4"><small class="text-muted d-block">Tipo de processo</small><strong><?= e((($demand['tipo_processo'] ?? '') === 'outros' && trim((string)($demand['tipo_processo_outros'] ?? '')) !== '') ? $demand['tipo_processo_outros'] : ($processLabels[$demand['tipo_processo']] ?? $demand['tipo_processo'])) ?></strong></div>
           <div class="col-md-4"><small class="text-muted d-block">Tipo de emenda</small><strong><?= e($amendmentLabels[$demand['tipo_emenda']] ?? (($demand['tipo_emenda'] ?? '') === 'parlamentar' ? 'Federal' : $demand['tipo_emenda'])) ?></strong></div>
           <div class="col-md-4"><small class="text-muted d-block">Status atual</small><span class="badge badge-status <?= e($statusClass[$demand['status']] ?? 'bg-secondary') ?>"><?= e($statusLabels[$demand['status']] ?? $demand['status']) ?></span></div>
           <div class="col-md-4"><small class="text-muted d-block">Data limite do funcionário</small><strong><?= e(date('d/m/Y H:i', strtotime($demand['data_prazo_resposta']))) ?></strong></div>
@@ -141,7 +142,8 @@ $historyActionLabels = ['create' => 'Criação da demanda','edit' => 'Edição d
       <div class="col-md-6"><label class="form-label">Nome da emenda</label><input class="form-control" name="emenda" value="<?= e($demand['emenda']) ?>" required></div>
       <div class="col-md-6"><label class="form-label">Nome do político <small class="text-muted">(opcional)</small></label><input class="form-control" name="nome_politico" value="<?= e($demand['nome_politico']) ?>"></div>
       <div class="col-md-6"><label class="form-label">Número do processo SEI <small class="text-muted">(opcional)</small></label><input class="form-control" name="numero_processo_sei" value="<?= e($demand['numero_processo_sei'] ?? '') ?>"></div>
-      <div class="col-md-4"><label class="form-label">Tipo de processo</label><select class="form-select" name="tipo_processo" required><?php foreach ($processLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['tipo_processo']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
+      <div class="col-md-4"><label class="form-label">Tipo de processo</label><select class="form-select js-tipo-processo" name="tipo_processo" required><?php foreach ($processLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['tipo_processo']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
+      <div class="col-md-4 <?= ($demand['tipo_processo'] ?? '') === 'outros' ? '' : 'd-none' ?> js-tipo-processo-outros-wrap"><label class="form-label">Tipo de processo (Outros)</label><input class="form-control js-tipo-processo-outros" name="tipo_processo_outros" maxlength="255" value="<?= e($demand['tipo_processo_outros'] ?? '') ?>"></div>
       <div class="col-md-4"><label class="form-label">Tipo de emenda</label><select class="form-select" name="tipo_emenda" required><?php foreach ($amendmentLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['tipo_emenda']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
       <div class="col-md-4"><label class="form-label">Status</label><select class="form-select" name="status" required><?php foreach ($statusLabels as $k=>$l): ?><option value="<?= $k ?>" <?= $demand['status']===$k?'selected':'' ?>><?= $l ?></option><?php endforeach; ?></select></div>
       <div class="col-md-6"><label class="form-label fw-semibold">Data limite para o funcionário resolver a demanda</label><input type="datetime-local" class="form-control" name="data_prazo_resposta" value="<?= e(date('Y-m-d\TH:i', strtotime($demand['data_prazo_resposta']))) ?>" required></div>
@@ -155,6 +157,28 @@ $historyActionLabels = ['create' => 'Criação da demanda','edit' => 'Edição d
 </div>
 <?php endforeach; ?>
 </tbody></table></div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('form').forEach(function (form) {
+    var select = form.querySelector('.js-tipo-processo');
+    var wrap = form.querySelector('.js-tipo-processo-outros-wrap');
+    var input = form.querySelector('.js-tipo-processo-outros');
+    if (!select || !wrap || !input) return;
+
+    var sync = function () {
+      var isOutros = select.value === 'outros';
+      wrap.classList.toggle('d-none', !isOutros);
+      input.required = isOutros;
+      if (!isOutros) input.value = '';
+    };
+
+    select.addEventListener('change', sync);
+    sync();
+  });
+});
+</script>
 
 <?php if (($totalPages ?? 1) > 1): ?>
 <nav class="mt-3"><ul class="pagination justify-content-end mb-0">

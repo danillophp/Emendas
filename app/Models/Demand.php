@@ -7,7 +7,7 @@ use App\Core\Database;
 class Demand
 {
     public const STATUS_ALLOWED = ['pendente', 'cadastrada', 'concluído'];
-    public const PROCESS_TYPES = ['prestacao_de_conta', 'cadastro_de_emenda'];
+    public const PROCESS_TYPES = ['prestacao_de_conta', 'cadastro_de_emenda', 'demanda_administrativa', 'outros'];
     public const AMENDMENT_TYPES = ['federal', 'estadual', 'municipal'];
 
     public const HISTORY_ACTION_CREATE = 'create';
@@ -47,9 +47,9 @@ class Demand
 
     public function create(array $data): int
     {
-        $sql = 'INSERT INTO demandas (emenda, nome_politico, numero_processo_sei, tipo_processo, tipo_emenda, data_prazo_resposta, data_cadastro_emenda,
+        $sql = 'INSERT INTO demandas (emenda, nome_politico, numero_processo_sei, tipo_processo, tipo_processo_outros, tipo_emenda, data_prazo_resposta, data_cadastro_emenda,
                     observacao, anexo_emenda, anexo_nome_original, funcionario_id, status, criado_por, data_ultima_atualizacao)
-                VALUES (:emenda, :nome_politico, :numero_processo_sei, :tipo_processo, :tipo_emenda, :data_prazo_resposta, :data_cadastro_emenda,
+                VALUES (:emenda, :nome_politico, :numero_processo_sei, :tipo_processo, :tipo_processo_outros, :tipo_emenda, :data_prazo_resposta, :data_cadastro_emenda,
                     :observacao, :anexo_emenda, :anexo_nome_original, :funcionario_id, :status, :criado_por, NOW())';
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($data);
@@ -63,6 +63,7 @@ class Demand
                     nome_politico = :nome_politico,
                     numero_processo_sei = :numero_processo_sei,
                     tipo_processo = :tipo_processo,
+                    tipo_processo_outros = :tipo_processo_outros,
                     tipo_emenda = :tipo_emenda,
                     data_prazo_resposta = :data_prazo_resposta,
                     data_cadastro_emenda = :data_cadastro_emenda,
