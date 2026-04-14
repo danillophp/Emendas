@@ -7,7 +7,7 @@ use App\Core\Database;
 class Demand
 {
     public const STATUS_ALLOWED = ['pendente', 'cadastrada', 'concluído'];
-    public const PROCESS_TYPES = ['prestacao_de_conta', 'cadastro_de_emenda', 'demanda_administrativa', 'outros'];
+    public const PROCESS_TYPES = ['prestacao_de_conta', 'cadastro_de_emenda', 'outros'];
     public const AMENDMENT_TYPES = ['federal', 'estadual', 'municipal'];
 
     public const HISTORY_ACTION_CREATE = 'create';

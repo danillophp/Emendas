@@ -1,7 +1,7 @@
 <?php
 $statusLabels = ['pendente' => 'Pendente', 'cadastrada' => 'Cadastrada', 'concluído' => 'Concluído'];
 $statusClass = ['pendente' => 'badge-pendente', 'cadastrada' => 'badge-cadastrada', 'concluído' => 'badge-concluido'];
-$processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_emenda' => 'Cadastro de emenda', 'demanda_administrativa' => 'Demanda Administrativa', 'outros' => 'Outros'];
+$processLabels = ['prestacao_de_conta' => 'Prestação de conta', 'cadastro_de_emenda' => 'Cadastro de emenda', 'outros' => 'Outros'];
 $amendmentLabels = ['federal' => 'Federal', 'estadual' => 'Estadual', 'municipal' => 'Municipal'];
 ?>
 
