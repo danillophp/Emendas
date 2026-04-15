@@ -1,0 +1,308 @@
+-- =========================================================
+-- Sistema de Gestão de Emendas Governamentais
+-- Banco: santo821_emenda
+-- Compatível com MySQL 5.7+/8.0 e phpMyAdmin (HostGator)
+-- =========================================================
+
+SET NAMES utf8mb4;
+SET time_zone = '+00:00';
+SET SQL_MODE = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ---------------------------------------------------------
+-- Banco de dados (HostGator/cPanel)
+-- ---------------------------------------------------------
+-- IMPORTANTE:
+-- 1) O usuário MySQL deve ser criado e vinculado ao banco no cPanel.
+-- 2) Este script NÃO executa CREATE USER, DROP USER, GRANT ou FLUSH PRIVILEGES.
+-- 3) Em muitos planos compartilhados, CREATE DATABASE não é permitido via phpMyAdmin.
+-- 4) Ajuste o nome real do banco abaixo (normalmente com prefixo do cPanel),
+--    por exemplo: `cpaneluser_santo821_emenda`.
+
+-- Opcional (descomente apenas se seu usuário tiver permissão para criar banco):
+-- CREATE DATABASE IF NOT EXISTS `cpaneluser_santo821_emenda`
+--   CHARACTER SET utf8mb4
+--   COLLATE utf8mb4_unicode_ci;
+
+USE `cpaneluser_santo821_emenda`;
+
+-- ---------------------------------------------------------
+-- Reimportação segura (ordem por dependência)
+-- ---------------------------------------------------------
+DROP TRIGGER IF EXISTS `trg_demandas_ai_log`;
+DROP TRIGGER IF EXISTS `trg_demandas_au_log`;
+DROP TRIGGER IF EXISTS `trg_demandas_ad_log`;
+
+DROP TABLE IF EXISTS `sessoes_usuario`;
+DROP TABLE IF EXISTS `redefinicao_senha`;
+DROP TABLE IF EXISTS `logs_sistema`;
+DROP TABLE IF EXISTS `notificacoes`;
+DROP TABLE IF EXISTS `demandas_historico`;
+DROP TABLE IF EXISTS `demandas`;
+DROP TABLE IF EXISTS `usuarios`;
+
+-- ---------------------------------------------------------
+-- 1) Tabela: usuarios
+-- ---------------------------------------------------------
+CREATE TABLE `usuarios` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `nome_completo` VARCHAR(150) NOT NULL,
+  `email` VARCHAR(150) NOT NULL,
+  `endereco` VARCHAR(255) NOT NULL,
+  `whatsapp` VARCHAR(20) NOT NULL,
+  `numero_decreto` VARCHAR(50) NOT NULL,
+  `data_nascimento` DATE NOT NULL,
+  `usuario` VARCHAR(60) NOT NULL,
+  `senha_hash` VARCHAR(255) NOT NULL,
+  `perfil` ENUM('master','funcionario') NOT NULL,
+  `primeiro_login` TINYINT(1) NOT NULL DEFAULT 1,
+  `ativo` TINYINT(1) NOT NULL DEFAULT 1,
+  `ultimo_login` DATETIME NULL,
+  `session_token` VARCHAR(128) NULL DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_usuarios_email` (`email`),
+  UNIQUE KEY `uq_usuarios_usuario` (`usuario`),
+  UNIQUE KEY `uq_usuarios_numero_decreto` (`numero_decreto`),
+  KEY `idx_usuarios_perfil_ativo` (`perfil`, `ativo`),
+  KEY `idx_usuarios_ultimo_login` (`ultimo_login`),
+  KEY `idx_usuarios_session_token` (`session_token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 2) Tabela: demandas
+-- ---------------------------------------------------------
+CREATE TABLE `demandas` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `emenda` VARCHAR(180) NOT NULL,
+  `nome_politico` VARCHAR(150) NULL,
+  `numero_processo_sei` VARCHAR(80) NULL,
+  `tipo_processo` ENUM('prestacao_de_conta','cadastro_de_emenda','outros') NOT NULL,
+  `tipo_processo_outros` VARCHAR(255) NULL,
+  `tipo_emenda` ENUM('federal','estadual','municipal','outros') NOT NULL,
+  `tipo_emenda_outros` VARCHAR(255) NULL,
+  `data_prazo_resposta` DATETIME NOT NULL,
+  `data_cadastro_emenda` DATE NOT NULL,
+  `observacao` TEXT NULL,
+  `observacao_funcionario` TEXT NULL,
+  `anexo_emenda` VARCHAR(255) NULL,
+  `anexo_nome_original` VARCHAR(180) NULL,
+  `funcionario_id` INT UNSIGNED NOT NULL,
+  `status` ENUM('pendente','cadastrada','concluído') NOT NULL DEFAULT 'pendente',
+  `criado_por` INT UNSIGNED NOT NULL,
+  `data_ultima_atualizacao` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_demandas_status` (`status`),
+  KEY `idx_demandas_prazo_resposta` (`data_prazo_resposta`),
+  KEY `idx_demandas_funcionario_id` (`funcionario_id`),
+  KEY `idx_demandas_criado_por` (`criado_por`),
+  KEY `idx_demandas_status_prazo` (`status`, `data_prazo_resposta`),
+  CONSTRAINT `fk_demandas_funcionario`
+    FOREIGN KEY (`funcionario_id`) REFERENCES `usuarios` (`id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT `fk_demandas_criado_por`
+    FOREIGN KEY (`criado_por`) REFERENCES `usuarios` (`id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+
+-- ---------------------------------------------------------
+-- 3) Tabela: demandas_historico
+-- ---------------------------------------------------------
+CREATE TABLE `demandas_historico` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `demanda_id` BIGINT UNSIGNED NOT NULL,
+  `usuario_id` INT UNSIGNED NULL,
+  `usuario_nome` VARCHAR(150) NOT NULL,
+  `acao` VARCHAR(50) NOT NULL DEFAULT 'status_change',
+  `status_anterior` VARCHAR(40) NULL,
+  `status_novo` VARCHAR(40) NOT NULL,
+  `observacao` TEXT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_hist_demanda_created` (`demanda_id`, `created_at`),
+  KEY `idx_hist_usuario` (`usuario_id`),
+  CONSTRAINT `fk_hist_demanda` FOREIGN KEY (`demanda_id`) REFERENCES `demandas` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_hist_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 4) Tabela: notificacoes
+-- ---------------------------------------------------------
+CREATE TABLE `notificacoes` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT UNSIGNED NOT NULL,
+  `titulo` VARCHAR(120) NOT NULL,
+  `mensagem` VARCHAR(255) NOT NULL,
+  `tipo` VARCHAR(50) NOT NULL,
+  `referencia_id` BIGINT UNSIGNED NULL,
+  `referencia_tabela` VARCHAR(80) NULL,
+  `lida` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_notificacoes_usuario_lida` (`usuario_id`, `lida`),
+  KEY `idx_notificacoes_tipo` (`tipo`),
+  KEY `idx_notificacoes_referencia` (`referencia_tabela`, `referencia_id`),
+  KEY `idx_notificacoes_created_at` (`created_at`),
+  KEY `idx_notificacoes_automacao` (`usuario_id`, `tipo`, `referencia_id`, `created_at`),
+  CONSTRAINT `fk_notificacoes_usuario`
+    FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 5) Tabela: logs_sistema
+-- ---------------------------------------------------------
+CREATE TABLE `logs_sistema` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT UNSIGNED NULL,
+  `acao` VARCHAR(100) NOT NULL,
+  `entidade` VARCHAR(80) NOT NULL,
+  `entidade_id` BIGINT UNSIGNED NULL,
+  `descricao` TEXT NULL,
+  `ip` VARCHAR(45) NULL,
+  `user_agent` VARCHAR(255) NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_logs_usuario_id` (`usuario_id`),
+  KEY `idx_logs_entidade` (`entidade`, `entidade_id`),
+  KEY `idx_logs_created_at` (`created_at`),
+  CONSTRAINT `fk_logs_usuario`
+    FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+    ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 6) Tabela: redefinicao_senha
+-- ---------------------------------------------------------
+CREATE TABLE `redefinicao_senha` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT UNSIGNED NOT NULL,
+  `token` VARCHAR(128) NOT NULL,
+  `expira_em` DATETIME NOT NULL,
+  `usado` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_redefinicao_token` (`token`),
+  KEY `idx_redefinicao_usuario_id` (`usuario_id`),
+  KEY `idx_redefinicao_expira_em` (`expira_em`),
+  CONSTRAINT `fk_redefinicao_usuario`
+    FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ---------------------------------------------------------
+-- 7) Tabela: sessoes_usuario (auditoria de sessões)
+-- ---------------------------------------------------------
+CREATE TABLE `sessoes_usuario` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT UNSIGNED NOT NULL,
+  `session_id` VARCHAR(128) NOT NULL,
+  `ip` VARCHAR(45) NULL,
+  `user_agent` VARCHAR(255) NULL,
+  `data_login` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ultima_atividade` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ativo` TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_sessoes_usuario_session_id` (`session_id`),
+  KEY `idx_sessoes_usuario_usuario_ativo` (`usuario_id`, `ativo`),
+  KEY `idx_sessoes_usuario_atividade` (`ultima_atividade`),
+  CONSTRAINT `fk_sessoes_usuario`
+    FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- Auditoria por trigger (demanda)
+-- Uso opcional na aplicação: SET @app_user_id = <id_usuario_logado>;
+-- ---------------------------------------------------------
+DELIMITER $$
+
+CREATE TRIGGER `trg_demandas_ai_log`
+AFTER INSERT ON `demandas`
+FOR EACH ROW
+BEGIN
+  INSERT INTO `logs_sistema` (`usuario_id`, `acao`, `entidade`, `entidade_id`, `descricao`)
+  VALUES (
+    COALESCE(@app_user_id, NEW.criado_por),
+    'INSERT',
+    'demandas',
+    NEW.id,
+    CONCAT('Demanda criada com status ', NEW.status)
+  );
+END$$
+
+CREATE TRIGGER `trg_demandas_au_log`
+AFTER UPDATE ON `demandas`
+FOR EACH ROW
+BEGIN
+  INSERT INTO `logs_sistema` (`usuario_id`, `acao`, `entidade`, `entidade_id`, `descricao`)
+  VALUES (
+    COALESCE(@app_user_id, NEW.criado_por),
+    'UPDATE',
+    'demandas',
+    NEW.id,
+    CONCAT('Demanda atualizada. Status de ', OLD.status, ' para ', NEW.status, '. Última atualização em ', NEW.data_ultima_atualizacao)
+  );
+END$$
+
+CREATE TRIGGER `trg_demandas_ad_log`
+AFTER DELETE ON `demandas`
+FOR EACH ROW
+BEGIN
+  INSERT INTO `logs_sistema` (`usuario_id`, `acao`, `entidade`, `entidade_id`, `descricao`)
+  VALUES (
+    COALESCE(@app_user_id, OLD.criado_por),
+    'DELETE',
+    'demandas',
+    OLD.id,
+    'Demanda removida'
+  );
+END$$
+
+DELIMITER ;
+
+-- ---------------------------------------------------------
+-- Usuário MASTER inicial
+-- senha em texto para cadastro inicial: Master@123
+-- hash bcrypt correspondente abaixo
+-- ---------------------------------------------------------
+INSERT INTO `usuarios` (
+  `nome_completo`,
+  `email`,
+  `endereco`,
+  `whatsapp`,
+  `numero_decreto`,
+  `data_nascimento`,
+  `usuario`,
+  `senha_hash`,
+  `perfil`,
+  `primeiro_login`,
+  `ativo`,
+  `ultimo_login`
+) VALUES (
+  'Administrador Master',
+  'master@emendas.local',
+  'Endereço administrativo',
+  '5500000000000',
+  'MASTER-001',
+  '1990-01-01',
+  'master',
+  '$2y$10$2oUApvafnV5fGecK4fX3Z.2UNx9lKk2fuRu8etIRsEhM99f2m2vHW',
+  'master',
+  0,
+  1,
+  NOW()
+)
+ON DUPLICATE KEY UPDATE
+  `nome_completo` = VALUES(`nome_completo`),
+  `usuario` = VALUES(`usuario`),
+  `ativo` = VALUES(`ativo`),
+  `primeiro_login` = VALUES(`primeiro_login`);
+
+SET FOREIGN_KEY_CHECKS = 1;
