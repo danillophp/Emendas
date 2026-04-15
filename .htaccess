@@ -1,0 +1,30 @@
+# =========================
+# HostGator /emendas hardening
+# =========================
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /emendas/
+
+    # Força HTTPS quando disponível
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Bloqueia acesso direto a arquivos/pastas sensíveis
+    RewriteRule ^(app|config|database|storage|logs|routes|sql|includes|uploads)/ - [F,L,NC]
+    RewriteRule ^(README\.md|DEPLOY_HOSTGATOR\.md|ESTRUTURA_MVC_HOSTGATOR\.md|composer\.(json|lock)|\.env|\.git) - [F,L,NC]
+
+    # Front controller
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>

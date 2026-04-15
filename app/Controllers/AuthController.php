@@ -1,0 +1,198 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Models\SystemLog;
+use App\Models\User;
+
+class AuthController extends Controller
+{
+    private User $users;
+    private SystemLog $logs;
+
+    public function __construct()
+    {
+        $this->users = new User();
+        $this->logs = new SystemLog();
+    }
+
+    public function showLogin(): void
+    {
+        if (!empty($_SESSION['user'])) {
+            redirect($_SESSION['user']['role'] === 'master' ? 'master/dashboard' : 'funcionario/dashboard');
+        }
+
+        $this->view('auth/login');
+    }
+
+    public function login(): void
+    {
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Sua sessão expirou. Atualize a página e tente novamente.');
+            redirect('login');
+        }
+
+        $username = trim((string)($_POST['usuario'] ?? ''));
+        $password = (string)($_POST['senha'] ?? '');
+
+        if ($username === '' || $password === '') {
+            flash('error', 'Informe usuário e senha para entrar no sistema.');
+            redirect('login');
+        }
+
+        $user = $this->users->findByUsername($username);
+
+        if (!$user || !password_verify($password, $user['senha_hash'])) {
+            flash('error', 'Usuário ou senha inválidos.');
+            redirect('login');
+        }
+
+        if (!(bool)$user['ativo']) {
+            flash('error', 'Seu usuário está inativo. Contate o administrador Master.');
+            redirect('login');
+        }
+
+        $role = (string)($user['perfil'] ?? '');
+        if (!in_array($role, ['master', 'funcionario'], true)) {
+            flash('error', 'Perfil de usuário inválido para acesso ao sistema.');
+            redirect('login');
+        }
+
+        session_regenerate_id(true);
+        $phpSessionId = session_id();
+
+        // Compatibilidade retroativa: mantém token de sessão atual.
+        $sessionToken = bin2hex(random_bytes(32));
+        $this->users->updateSessionToken((int)$user['id'], $sessionToken);
+
+        // Auditoria de sessão em banco.
+        if ($this->users->supportsSessionAudit()) {
+            $this->users->registerSession(
+                (int)$user['id'],
+                $phpSessionId,
+                client_ip(),
+                $_SERVER['HTTP_USER_AGENT'] ?? null
+            );
+
+            // Política de segurança: funcionário só pode manter 1 sessão ativa.
+            if ($role === 'funcionario') {
+                $this->users->deactivateSessionsExcept((int)$user['id'], $phpSessionId);
+            }
+
+        }
+
+        $_SESSION['user'] = [
+            'id' => (int)$user['id'],
+            'name' => $user['nome_completo'],
+            'role' => $role,
+            'first_login' => (bool)$user['primeiro_login'],
+            'session_token' => $sessionToken,
+            'session_id' => $phpSessionId,
+        ];
+
+        rotate_csrf_token();
+
+        $this->logs->create([
+            'usuario_id' => (int)$user['id'],
+            'acao' => 'login',
+            'entidade' => 'sessao',
+            'entidade_id' => (int)$user['id'],
+            'descricao' => sprintf('Login realizado com sucesso. Sessão=%s', $phpSessionId),
+            'ip' => client_ip(),
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+        ]);
+
+        if ((bool)$user['primeiro_login'] && $role === 'funcionario') {
+            flash('success', 'Primeiro acesso detectado. Defina sua nova senha para continuar.');
+            redirect('change-password');
+        }
+
+        redirect($role === 'master' ? 'master/dashboard' : 'funcionario/dashboard');
+    }
+
+    public function showChangePassword(): void
+    {
+        $this->requireAuth();
+
+        $role = $_SESSION['user']['role'] ?? '';
+        if ($role !== 'funcionario' && $role !== 'master') {
+            flash('error', 'Perfil inválido para alteração de senha.');
+            redirect('login');
+        }
+
+        $this->view('auth/change-password');
+    }
+
+    public function changePassword(): void
+    {
+        $this->requireAuth();
+
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Sua sessão expirou. Atualize a página e tente novamente.');
+            redirect('change-password');
+        }
+
+        $password = (string)($_POST['password'] ?? '');
+        $confirm = (string)($_POST['password_confirm'] ?? '');
+
+        if (strlen($password) < 8) {
+            flash('error', 'A nova senha deve ter no mínimo 8 caracteres.');
+            redirect('change-password');
+        }
+
+        if ($password !== $confirm) {
+            flash('error', 'A confirmação de senha não confere.');
+            redirect('change-password');
+        }
+
+        $this->users->updatePassword((int)$_SESSION['user']['id'], password_hash($password, PASSWORD_DEFAULT), false);
+        $_SESSION['user']['first_login'] = false;
+        rotate_csrf_token();
+
+        flash('success', 'Senha alterada com sucesso.');
+        redirect($_SESSION['user']['role'] === 'master' ? 'master/dashboard' : 'funcionario/dashboard');
+    }
+
+    public function logout(): void
+    {
+        if (!verify_csrf($_POST['_csrf'] ?? null)) {
+            flash('error', 'Requisição inválida de logout.');
+            redirect('login');
+        }
+
+        if (!empty($_SESSION['user']['id'])) {
+            $userId = (int)$_SESSION['user']['id'];
+            $role = (string)($_SESSION['user']['role'] ?? '');
+            $sessionId = (string)($_SESSION['user']['session_id'] ?? session_id());
+
+            if ($this->users->supportsSessionAudit()) {
+                $this->users->deactivateSession($userId, $sessionId);
+            }
+
+            // Mantém comportamento legado para funcionário (sessão única via token).
+            if ($role !== 'master') {
+                $this->users->updateSessionToken($userId, null);
+            }
+
+            $this->logs->create([
+                'usuario_id' => $userId,
+                'acao' => 'logout',
+                'entidade' => 'sessao',
+                'entidade_id' => $userId,
+                'descricao' => sprintf('Logout realizado. Sessão=%s', $sessionId),
+                'ip' => client_ip(),
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            ]);
+        }
+
+        // Encerra apenas a sessão atual, sem destruir sessões paralelas em outros dispositivos.
+        $_SESSION = [];
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+
+        flash('success', 'Você saiu com segurança.');
+        redirect('login');
+    }
+}
